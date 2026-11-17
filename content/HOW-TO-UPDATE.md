@@ -35,13 +35,13 @@ From then on, the website reads the sheet directly.
 | description | One line about it | `Invitational basketball tournament` |
 | flagship | `yes` for big events (they get the home-page spotlight earlier) | `yes` |
 | colour | `yellow`, `orange`, `red`, `blue` or `green` | `orange` |
-| register_link | When registration opens, write **`portal`** to send students to the Sports Sphere registration portal. (A Google Form link also works, for small events.) | `portal` |
+| register_link | When registration opens, paste the registration form link (e.g. a Google Form). (`portal` is for later, once the registration portal is linked.) | `https://forms.gle/…` |
 | details_link | Optional page or post with more info | `events.html#hoop-it-up` |
 | image | Optional logo or poster link | |
 
 💡 **Tip:** in Google Sheets, select the start and end columns and choose **Format → Number → Plain text** so dates stay as `2027-08-27`.
 
-- **Registration opens:** write `portal` in `register_link` (or paste a form link). A **Register** button appears instantly.
+- **Registration opens:** paste the form link in `register_link`. A **Register** button appears instantly.
 - **Registration closes:** delete the link. The button changes to "Registration opens soon". Once the event's date has passed, the button disappears completely.
 
 ### 🏆 After an event: add the winners (`results` tab)
@@ -62,7 +62,7 @@ The latest 3 appear on the home page once there are at least 2 posts.
 
 ### 🔗 Registration portal (`settings` tab, set once)
 
-Write the registration portal's web address in `registration_portal` (for example `https://register.sportssphere.mitwpu.edu.in`). Every **Register** button on the website then opens the portal, events marked `portal` link to it, and a **Check my registration** link appears in the footer. Leave it empty and the Register buttons go to the events calendar instead.
+**Not in use yet: leave this empty until the registration portal is linked.** Later, write the registration portal's web address in `registration_portal` (for example `https://register.sportssphere.mitwpu.edu.in`). Every **Register** button on the website then opens the portal, events marked `portal` link to it, and a **Check my registration** link appears in the footer. Leave it empty and the Register buttons go to the events calendar instead.
 
 ### 📣 Announcement bar (`settings` tab)
 
@@ -94,7 +94,7 @@ Add `?preview-date=2027-08-25` to the end of any page address, for example
 
 1. Add the new season's events in `events` (season = `2027-28`).
 2. Update `stats` and `sponsors`.
-3. Write `portal` in `register_link` as registrations open.
+3. Paste the form link in `register_link` as registrations open.
 4. Add results and news as the season goes on.
 
 Old seasons stay in the sheet, so don't delete them. They become the archive.

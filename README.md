@@ -4,8 +4,8 @@ Static site (HTML + CSS + vanilla JS). There is no build step and nothing to ins
 
 ## Live site (Vercel)
 
-https://sports-sphere-website.vercel.app (Vercel project `sports-sphere-website`). The Register buttons point at the
-registration portal https://sports-sphere-platform.vercel.app via `registration_portal` in `content/settings.csv`.
+https://sports-sphere-website.vercel.app (Vercel project `sports-sphere-website`). The site is **not linked to the
+Sports Sphere platform yet**: `registration_portal` in `content/settings.csv` is empty, so Register buttons go to the events calendar.
 Redeploy after any change (edits to `content/*.csv` included):
 
 ```bash
@@ -32,14 +32,15 @@ python3 -m http.server 8080
 | `events.html` | Hoop It Up, Sports Summit, 2026–27 calendar (auto-marks Completed / Next up by date), registration form |
 | `partner.html` | Why partner, 6 sponsorship tiers, benefits table, previous sponsors, testimonials, enquiry form |
 | `contact.html` | Contact details, enquiry form, map |
+| `join.html` | Join Sports Sphere: teams students can join (event management, media, design, marketing, sponsorship, volunteering), how it works, application form. For non-athletes; athletes register per tournament from the events calendar |
 | `assets/css/style.css` | Design system (brand tokens at the top) |
 | `assets/js/main.js` | Mobile nav, scroll reveals, counters, filters, form validation |
 
 **Season content (events, registration links, stats, sponsors, news, results, announcement):** lives in the tables in `content/` or in a Google Sheet (set `sheetId` in `assets/js/config.js`). `assets/js/content.js` reads them live in the browser. The club's guide is [content/HOW-TO-UPDATE.md](content/HOW-TO-UPDATE.md). The site must be served over http(s), not opened as a file, for the tables to load. Add `?preview-date=YYYY-MM-DD` to any URL to preview a future date.
 
-**Registration:** athletes register on the separate Sports Sphere registration portal. Set its address once as `registration_portal` in `content/settings.csv` (or the Sheet's `settings` tab). The header, footer and banner **Register** buttons (marked `data-register` in `tools/build.py`) then open `<portal>/register`, an event whose `register_link` is `portal` links there too, and a footer "Check my registration" link opens `<portal>/status`. Empty = buttons go to the events calendar.
+**Registration:** not linked to the platform yet (on hold). Each event's `register_link` can hold a form link meanwhile. When it is time to link the platform, set its address once as `registration_portal` in `content/settings.csv` (or the Sheet's `settings` tab). The header, footer and banner **Register** buttons (marked `data-register` in `tools/build.py`) then open `<portal>/register`, an event whose `register_link` is `portal` links there too, and a footer "Check my registration" link opens `<portal>/status`. Empty = buttons go to the events calendar.
 
-**Page copy and layout:** the rest of the copy, the header/footer, sports list and sponsorship tiers live in `tools/build.py`. Edit it, then run `python3 tools/build.py` from the project root to regenerate the 6 pages. Don't hand-edit the HTML files, because the next build overwrites them.
+**Page copy and layout:** the rest of the copy, the header/footer, sports list and sponsorship tiers live in `tools/build.py`. Edit it, then run `python3 tools/build.py` from the project root to regenerate the 7 pages. Don't hand-edit the HTML files, because the next build overwrites them.
 
 ## How the MIT-WPU Brand Book 2026 is applied
 
@@ -60,6 +61,7 @@ python3 -m http.server 8080
 Most copy, stats, the calendar, the sports list and the sponsorship tiers come from the client's **Sponsorship Docket 2026–27**. Instagram handles come from the client's QR codes: @sportssphere__mitwpu, @hoopitup_mitwpu, @mitwpusummit.
 
 ### Open questions for the client
+- [ ] **Join Sports Sphere page:** who can join (MIT-WPU students only?), which teams exist (the 6 on `join.html` are placeholders in `JOIN_AREAS` in `tools/build.py`), and where applications should go. Recommended: a Google Form/Sheet; put its submit URL in `data-endpoint` on the join form. Until then the form says honestly that nothing was sent.
 - [ ] The docket gives two different Instagram follower counts (2000+ on p.5, 685+ on p.15). Neither is shown on the site until confirmed.
 - [ ] Hoop It Up: the docket says "Invitational State-Level", but the logo says "Inter University Basketball Championship". The site uses the docket wording.
 - [ ] "Swimming (upto)" in the sports list looks cut off. The site shows "Swimming".

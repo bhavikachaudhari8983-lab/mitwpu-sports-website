@@ -4,7 +4,7 @@ Edit content here, then run from the project root:
 
     python3 tools/build.py
 
-It rewrites the 6 HTML pages (shared header/footer stay identical).
+It rewrites the 7 HTML pages (shared header/footer stay identical).
 Works on Python 3.8+ with no extra packages.
 
 Content source: Sports Sphere Sponsorship Docket 2026-27 (supplied by the client),
@@ -149,7 +149,7 @@ def header(active):
             '    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span></button>\n'
             '    ' + WORDMARK + '\n'
             '    <nav id="site-nav" class="site-nav" aria-label="Primary"><ul>' + links + '</ul>'
-            '<a class="btn btn-primary btn-sm" href="events.html#calendar" data-register>Register ' + ARROW + '</a></nav>\n'
+            '<a class="btn btn-primary btn-sm" href="join.html"' + (cur if active == "join.html" else "") + '>Join Sports Sphere ' + ARROW + '</a></nav>\n'
             '    <!-- Official MIT-WPU logo: always top-right (Brand Book 2026, p.8), min 60px -->\n'
             '    <a href="https://mitwpu.edu.in" class="brand-logo" target="_blank" rel="noopener" aria-label="MIT World Peace University (opens in new tab)">'
             '<img src="assets/img/logo/mitwpu-logo-color.webp" alt="MIT-WPU" width="65" height="62"></a>\n'
@@ -161,7 +161,7 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '<p>MIT-WPU\'s official sports management &amp; event platform, uniting athletes, institutions and brands through the culture of collegiate sport.</p>'
           '<img class="footer-mit" src="assets/img/logo/mitwpu-logo-white.webp" alt="MIT-WPU" width="74" height="70"></div>\n'
           '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="events.html">Season calendar</a></li><li><a href="events.html#hoop-it-up">Hoop It Up</a></li><li><a href="events.html#summit">Sports Summit</a></li></ul></div>\n'
-          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="events.html#calendar" data-register>Register</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
+          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join Sports Sphere</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
           '      <div><h4>Follow us</h4><ul class="footer-links ig-links">' +
           ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s</a></li>' % (ig_url(h), I["ig"], h) for h, _, _, _ in IG) +
           '</ul><p class="footer-small">MIT World Peace University<br>S. No. 124, Paud Road, Kothrud, Pune 411038</p>'
@@ -212,10 +212,11 @@ def head(eyebrow, title_html, right=""):
     return ('<div class="section-head"><div><span class="eyebrow reveal">' + eyebrow + '</span>'
             '<h2 class="h2 reveal">' + title_html + '</h2></div>' + right + '</div>')
 
-def cta(title="Your game<br>starts here.", lead="Athlete, team, college or brand: there's a place for you in the Sphere. Register for the next event or partner with us this season."):
+def cta(title="Your game<br>starts here.", lead="Athlete, organiser, creator or brand: there's a place for you in the Sphere. Enter the next event, join the team behind the games, or partner with us this season."):
     return ('<section class="cta">' + streaks("right") + '<div class="container cta-grid">'
             '<div class="reveal"><h2 class="h1">' + title + '</h2><p class="lead">' + lead + '</p>'
-            '<div class="hero-actions"><a class="btn btn-light" href="events.html#calendar" data-register>Register now ' + ARROW + '</a>'
+            '<div class="hero-actions"><a class="btn btn-light" href="join.html">Join Sports Sphere ' + ARROW + '</a>'
+            '<a class="btn btn-ghost on-grad" href="events.html#calendar" data-register>Register for an event</a>'
             '<a class="btn btn-ghost on-grad" href="partner.html">Become a sponsor</a></div></div>'
             '<div class="steps reveal" data-delay="1">'
             '<div class="step"><b>1</b><div><h3>Pick your event</h3><p>Trials, Hoop It Up, Sports Summit and more all season.</p></div></div>'
@@ -540,11 +541,11 @@ events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='g
           '<section class="section" id="results" data-results-wrap><div class="container">' + head("Results", "Winners<br><span class='grad-champ'>board</span>", '<p class="lead reveal">Champions of every Sports Sphere event, season after season.</p>') + '<div class="results" data-render="results"><p class="empty">Winners are posted here after every event.</p></div></div></section>'
           '<section class="section surface" id="register"><div class="container split top"><div>'
           '<span class="eyebrow reveal">How to register</span><h2 class="h2 reveal">Three steps<br><span class="grad">to game day</span></h2>'
-          '<p class="lead mt-2 reveal">Athletes register once on the Sports Sphere registration portal, with a verified identity and one QR Sports ID for the whole season. When registration opens, the <b>Register</b> button appears next to the event in the calendar above.</p>'
+          '<p class="lead mt-2 reveal">When registration opens for an event, a <b>Register</b> button appears next to it in the calendar above. Registration details for each event are also shared on @sportssphere__mitwpu.</p>'
           '<a class="btn btn-primary mt-3 reveal" href="#calendar">See open events ' + ARROW + '</a></div>'
           '<ul class="feature-list">' + feature_items([("clipboard", "1. Find your event", "Pick an event in the calendar. If registration is open, you\'ll see a Register button.", ORANGE),
-                                                       ("users", "2. Register and get verified", "The button opens the registration portal. Verify your identity, choose your events, and you get a QR Sports ID once approved.", BLUE),
-                                                       ("trophy", "3. Get ready", "Check your status, fixtures and results on the portal. Follow @sportssphere__mitwpu for live updates.", GREEN)]) + '</ul>'
+                                                       ("users", "2. Register and get verified", "The button opens the registration form for that event. Fill it in before registration closes.", BLUE),
+                                                       ("trophy", "3. Get ready", "Watch for your confirmation, then follow @sportssphere__mitwpu for fixtures, results and live updates.", GREEN)]) + '</ul>'
           '</div></section>')
 page("events.html", "Events", "Sports Sphere's season at MIT-WPU: Hoop It Up, the Sports Summit, interdepartmental sports, marathon, awards and more.", events)
 
@@ -592,7 +593,7 @@ contact = (page_hero("Contact", "Get in touch", "Let's talk<br><span class='grad
            '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Send us a message</h3><form class="form" data-validate novalidate data-subject="Website message" data-pending="Thanks! Our contact inbox is being connected. In the meantime, message @sportssphere__mitwpu on Instagram and we will reply there.">'
            + field("c-name", "Full name", '<input id="c-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
            + field("c-email", "Email", '<input id="c-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
-           + field("c-topic", "Topic", '<select id="c-topic" name="topic" required><option value="">Choose a topic</option><option>Event registration</option><option>Hoop It Up</option><option>Sports Summit</option><option>Sponsorship &amp; partnerships</option><option>Media &amp; press</option><option>Something else</option></select><span class="err">Please choose a topic.</span>', True)
+           + field("c-topic", "Topic", '<select id="c-topic" name="topic" required><option value="">Choose a topic</option><option>Event registration</option><option>Joining Sports Sphere</option><option>Hoop It Up</option><option>Sports Summit</option><option>Sponsorship &amp; partnerships</option><option>Media &amp; press</option><option>Something else</option></select><span class="err">Please choose a topic.</span>', True)
            + field("c-msg", "Message", '<textarea id="c-msg" name="message" required></textarea><span class="err">Please write a message.</span>', True) +
            '<button class="btn btn-primary" type="submit">Send it ' + ARROW + '</button>'
            '<div class="form-success" role="status">Message received. We\'ll get back to you soon.</div></form></div>'
@@ -600,9 +601,55 @@ contact = (page_hero("Contact", "Get in touch", "Let's talk<br><span class='grad
            '<section class="section" style="padding-top:0"><div class="container reveal"><iframe class="map-frame" title="Map: MIT World Peace University, Kothrud, Pune" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=MIT+World+Peace+University,+Kothrud,+Pune&amp;output=embed"></iframe></div></section>')
 page("contact.html", "Contact", "Contact Sports Sphere at MIT World Peace University, Pune: events, registrations and sponsorship.", contact)
 
+# ================================================================= JOIN
+# "Join Sports Sphere": for students who want to be part of the team behind the games (not athletes:
+# athletes register for each tournament from the events calendar). Separate from the tournament platform.
+# PROVISIONAL: the list of teams below is a placeholder until the Sports Office confirms who can join and how.
+JOIN_AREAS = [
+    ("clipboard", "Event management", "Plan and run match days: schedules, venues, registration desks and teams on the ground.", ORANGE),
+    ("camera", "Media &amp; photography", "Shoot photos and video at events and build the season's highlights.", RED),
+    ("eye", "Design &amp; content", "Posters, social posts, certificates and event branding.", BLUE),
+    ("megaphone", "Social media &amp; marketing", "Run our Instagram, promote events and grow the community.", GREEN),
+    ("handshake", "Sponsorship &amp; partnerships", "Pitch to brands and look after our sponsors during the season.", ORANGE),
+    ("users", "Event volunteer", "Help out at a single event, with no season-long commitment.", BLUE),
+]
+JOIN_PENDING = ("Thanks! Applications aren't being collected online yet, so this form hasn't been sent anywhere. "
+                "Please message @sportssphere__mitwpu on Instagram with your name and the team you'd like to join, and we'll get back to you.")
+YEARS = ["1st year", "2nd year", "3rd year", "4th year", "5th year", "Postgraduate", "Other"]
+
+join = (page_hero("Join", "Join Sports Sphere", "Be part of<br><span class='grad'>the team.</span>",
+                  "Not on the field? Sports Sphere runs on students who organise, film, design and host. Join the team behind the games.") +
+        '<section class="section"><div class="container">' + head("Ways to get involved", "Find your<br><span class='grad'>role</span>",
+                                                                  '<p class="lead reveal">Choose the team that suits you. No experience needed for most roles, just energy and time.</p>') +
+        '<div class="why-grid light">' + "".join('<div class="why reveal" data-delay="%d" style="--c:%s"><span class="fi">%s</span><h3>%s</h3><p>%s</p></div>'
+                                                  % (i % 3, c, I[ic], t, d) for i, (ic, t, d, c) in enumerate(JOIN_AREAS)) + '</div></div></section>'
+        '<section class="section surface" id="apply"><div class="container split top"><div>'
+        '<span class="eyebrow reveal">How it works</span><h2 class="h2 reveal">Three steps<br><span class="grad">to the team</span></h2>'
+        '<ul class="feature-list">' + feature_items([("clipboard", "1. Apply", "Fill in the form. It takes about two minutes.", ORANGE),
+                                                     ("mail", "2. Hear back", "The Sports Sphere team reviews applications and contacts you by email or phone.", BLUE),
+                                                     ("flag", "3. Get started", "Meet the team and help out at your first event.", GREEN)]) + '</ul>'
+        '<div class="note-card reveal"><h3>Want to compete?</h3><p>This form is for the team behind the games. Athletes register for each tournament separately, from the '
+        '<a href="events.html#calendar">events calendar</a>.</p></div></div>'
+        '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Apply to join</h3>'
+        '<form class="form" data-validate novalidate data-subject="Join Sports Sphere application" data-pending="' + JOIN_PENDING + '">'
+        + field("j-name", "Full name", '<input id="j-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
+        + field("j-email", "Email", '<input id="j-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
+        + field("j-phone", "Mobile number", '<input id="j-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[+]?[0-9 ]{10,15}" required><span class="err">Please enter a 10-digit mobile number.</span>')
+        + field("j-prn", "PRN (optional)", '<input id="j-prn" name="prn" type="text" inputmode="numeric" autocomplete="off">')
+        + field("j-inst", "School and programme", '<input id="j-inst" name="programme" type="text" placeholder="e.g. B.Tech, Computer Engg." required><span class="err">Please enter your school and programme.</span>')
+        + field("j-year", "Year of study", '<select id="j-year" name="year" required><option value="">Choose your year</option>' + "".join("<option>%s</option>" % y for y in YEARS) + '</select><span class="err">Please choose your year.</span>')
+        + field("j-area", "Team you'd like to join", '<select id="j-area" name="team" required><option value="">Choose a team</option>' + "".join("<option>%s</option>" % t for _, t, _, _ in JOIN_AREAS) + '<option>Not sure yet</option></select><span class="err">Please choose a team.</span>', True)
+        + field("j-msg", "About you", '<textarea id="j-msg" name="about" placeholder="Your skills, past experience, or why you want to join." required></textarea><span class="err">Please tell us a little about yourself.</span>', True) +
+        '<div class="field full check"><div class="check-row"><input id="j-consent" name="consent" type="checkbox" value="Yes" required>'
+        '<label for="j-consent">Sports Sphere may contact me about this application.</label></div><span class="err">Please tick this so we can contact you.</span></div>'
+        '<button class="btn btn-primary" type="submit">Send application ' + ARROW + '</button>'
+        '<div class="form-success" role="status">Application received. We\'ll be in touch soon.</div></form></div>'
+        '</div></section>')
+page("join.html", "Join Sports Sphere", "Join the student team behind Sports Sphere at MIT-WPU: event management, media, design, marketing, sponsorship and volunteering.", join)
+
 # Remove pages that no longer exist
 old = os.path.join(ROOT, "achievements.html")
 if os.path.exists(old):
     os.remove(old)
 
-print("Built 6 pages in", ROOT)
+print("Built 7 pages in", ROOT)

@@ -4,3 +4,5 @@ README.md
 content/HOW-TO-UPDATE.md
 *.code-workspace
 .DS_Store
+.env*
+.vscode/

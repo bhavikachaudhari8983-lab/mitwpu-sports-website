@@ -1,0 +1,107 @@
+# Sports Sphere — MIT-WPU official sports website
+
+Static site (HTML + CSS + vanilla JS). There is no build step and nothing to install, so it can be hosted anywhere (university server, Netlify, GitHub Pages, etc.).
+
+## Live site (Vercel)
+
+https://sports-sphere-website.vercel.app (Vercel project `sports-sphere-website`). The Register buttons point at the
+registration portal https://sports-sphere-platform.vercel.app via `registration_portal` in `content/settings.csv`.
+Redeploy after any change (edits to `content/*.csv` included):
+
+```bash
+npx vercel@latest deploy --prod
+```
+
+`.vercelignore` keeps `tools/`, this README and `content/HOW-TO-UPDATE.md` off the live site.
+
+## Preview locally
+
+```bash
+cd "sports sphere official website"
+python3 -m http.server 8080
+# open http://localhost:8080
+```
+
+## Structure
+
+| File | Page |
+|---|---|
+| `index.html` | Home: hero, Peace Studies, sports, Dronacharya Complex, events, honours, news |
+| `about.html` | Purpose, three pillars, milestones, leadership |
+| `sports.html` | Filterable sports grid, facilities, team trials and FAQ |
+| `events.html` | Hoop It Up, Sports Summit, 2026–27 calendar (auto-marks Completed / Next up by date), registration form |
+| `partner.html` | Why partner, 6 sponsorship tiers, benefits table, previous sponsors, testimonials, enquiry form |
+| `contact.html` | Contact details, enquiry form, map |
+| `assets/css/style.css` | Design system (brand tokens at the top) |
+| `assets/js/main.js` | Mobile nav, scroll reveals, counters, filters, form validation |
+
+**Season content (events, registration links, stats, sponsors, news, results, announcement):** lives in the tables in `content/` or in a Google Sheet (set `sheetId` in `assets/js/config.js`). `assets/js/content.js` reads them live in the browser. The club's guide is [content/HOW-TO-UPDATE.md](content/HOW-TO-UPDATE.md). The site must be served over http(s), not opened as a file, for the tables to load. Add `?preview-date=YYYY-MM-DD` to any URL to preview a future date.
+
+**Registration:** athletes register on the separate Sports Sphere registration portal. Set its address once as `registration_portal` in `content/settings.csv` (or the Sheet's `settings` tab). The header, footer and banner **Register** buttons (marked `data-register` in `tools/build.py`) then open `<portal>/register`, an event whose `register_link` is `portal` links there too, and a footer "Check my registration" link opens `<portal>/status`. Empty = buttons go to the events calendar.
+
+**Page copy and layout:** the rest of the copy, the header/footer, sports list and sponsorship tiers live in `tools/build.py`. Edit it, then run `python3 tools/build.py` from the project root to regenerate the 6 pages. Don't hand-edit the HTML files, because the next build overwrites them.
+
+## How the MIT-WPU Brand Book 2026 is applied
+
+| Rule (page) | Implementation |
+|---|---|
+| Digital font is Lato (p.12) | Lato 400 / 700 / 900 from Google Fonts |
+| Colour | **Taken from the Sports Sphere logo** (the site's main brand): midnight navy (from "SPORTS"), orange→red gradient (from "SPHERE"), and the yellow, orange, red, blue and green ring for accents. Tokens are at the top of style.css |
+| Tagline | The hero headline is the logo's official tagline, "Fueling Passion. Building Champions." |
+| Headline leading 80/72, subhead 40/44 (p.14) | `.display` line-height 0.9, `.h3` 1.1 |
+| Logo always top-right (p.8) | Official logo slot is at the right end of the header on every page |
+| Logo clear space = height of "M" (p.7) | Padding and divider around the header logo |
+| Minimum digital logo size 60px (p.6) | Header logo is 64px tall at all screen sizes |
+| White logo on navy (p.5) | White version used on navy header and footer |
+| Branding in header/footer on long documents (p.6) | Logo in header and footer, wordmark in footer |
+
+## Content source
+
+Most copy, stats, the calendar, the sports list and the sponsorship tiers come from the client's **Sponsorship Docket 2026–27**. Instagram handles come from the client's QR codes: @sportssphere__mitwpu, @hoopitup_mitwpu, @mitwpusummit.
+
+### Open questions for the client
+- [ ] The docket gives two different Instagram follower counts (2000+ on p.5, 685+ on p.15). Neither is shown on the site until confirmed.
+- [ ] Hoop It Up: the docket says "Invitational State-Level", but the logo says "Inter University Basketball Championship". The site uses the docket wording.
+- [ ] "Swimming (upto)" in the sports list looks cut off. The site shows "Swimming".
+- [ ] Should sponsorship **prices** be public on the website, or shared only in the docket?
+- [ ] The testimonials are unattributed ("Sponsorship Partner", "Brand Partner"). Get real names or approval to publish.
+- [ ] Sports Summit logo file, and sponsor logo files (Gold's Gym, VishwaRaj Hospital)
+- [ ] Sports Sphere email and phone (blank in the docket)
+- [ ] Director of Sports name (Dr. Vaibhav B. Wagh per the current MIT-WPU site vs Dr. Popat Dhanve)
+
+## TODO: content needed from MIT-WPU
+
+Everything below is a placeholder until the university sends official material.
+
+**Logo**
+- [x] Official **Sports Sphere** logo received from the client (685px PNG, 16 Nov 2026). `sports-sphere-logo.png/.webp` and `sports-sphere-badge.png/.webp` in `assets/img/logo/` are all made from it. The registration portal uses the same file (`public/brand/sports-sphere-logo.png`). The site colours come from this logo (see the top of style.css).
+- [ ] Print-quality version of the same logo (SVG, or PNG at 2000px or more, transparent background) for banners, standees and printed ID cards. 685px is enough for screens only. When it arrives, replace the files and keep the same filenames.
+- [ ] Official MIT-WPU **white** compact logo file. `assets/img/logo/mitwpu-logo-white.png` is currently made from the logo on mitwpu.edu.in (recoloured to white per brand book p.5). Replace it with the official file and keep the same filename.
+
+**Photography** (every navy block with a camera icon is a photo slot)
+- Swap `<div class="media ph ..." data-label="...">…</div>` for `<div class="media ..."><img src="assets/img/photos/NAME.webp" alt="…"></div>`
+- [ ] Home: hero/students in action, Dronacharya Complex, 3 news images
+- [ ] About: Dnyaneshwar dome, 4 leadership portraits
+- [ ] Sports: 4 facility photos
+- [ ] Achievements: 4 athlete portraits, 7 gallery photos
+- [ ] Social share image (1200×630) for `og:image`
+
+**Facts to confirm**
+- [ ] Final list of sports offered (currently 12 provisional: football, cricket, basketball, volleyball, kabaddi, athletics, badminton, table tennis, tennis, swimming, chess, yoga)
+- [ ] Dronacharya Sports Complex: actual venues, sizes and features
+- [ ] Event calendar: real names and dates (all currently "TBA")
+- [ ] Sports of the 4 felicitated athletes (Shreyasi Joshi, Anaya Bhavsar, Jinesh Nanal, Yashaya Contractor)
+- [ ] Mr. Vilas Kathure's designation
+- [ ] Sports Office email (contact page currently says "coming soon") and a dedicated phone number if there is one
+- [ ] Coaches list, training timings
+
+**Forms**
+- [ ] Contact and sponsorship forms validate in the browser but do not send anywhere yet. Add `data-endpoint="https://…"` to each `<form>` to POST submissions (e.g. to Formspree, Google Apps Script, or the university CRM). Athlete registration happens on the registration portal (see above).
+
+## Verified facts used (public sources)
+
+- Sports legacy since MIT-Pune founding, 1983. Dr. Popat Dhanve, Director of Sports (mitwpu.edu.in/mit-wpu-sports)
+- Dronacharya Sports Complex inaugurated 7 March 2026 by Shri Sanjay Seth, with Anjali Bhagwat and Abhijit Kunte present. Four athletes felicitated (mitwpu.edu.in news)
+- SUMMIT National-Level Inter-Engineering Sports Meet, held since 2004 (summit.mitwpu.edu.in)
+- VSM 2025: MIT-WPU second overall. VSM 2026: chess gold in men's and women's (Free Press Journal, mituniversity.ac.in)
+- MIT-WPU Sports Advisory Board established (Free Press Journal)

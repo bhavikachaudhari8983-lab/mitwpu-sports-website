@@ -1,0 +1,6 @@
+# Only the website itself goes online; the page generator, notes and editor files stay on this Mac.
+tools/
+README.md
+content/HOW-TO-UPDATE.md
+*.code-workspace
+.DS_Store

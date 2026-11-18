@@ -52,13 +52,25 @@ From then on, the website reads the sheet directly.
 
 They appear on the **Winners board** on the Events page.
 
-### 📰 Post news (`news` tab)
+### 📰 News and notices (`news` tab)
 
-| date | title | summary | tag | image | link |
-|---|---|---|---|---|---|
-| 2027-09-01 | Hoop It Up 2027 is a wrap | 180 teams, 4 days, one champion. | Results | | (Instagram post link) |
+One tab holds two kinds of post, set in the **kind** column:
 
-The latest 3 appear on the home page once there are at least 2 posts.
+- **`notice`**: short and official: selection trials, circulars, schedule changes. Shown on the **Notice board** (News page and home page).
+- **`story`** (or empty): event write-ups, results, achievements, press coverage. Shown as cards; the newest appear on the home page.
+
+| date | kind | tag | title | summary | body | image | link | attachment | deadline | pinned | event | sport |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2027-07-20 | notice | Selection trials | Basketball trials: register by 5 Aug | Trials for the men's and women's teams | | | | Circular PDF link | 2027-08-05 | yes | Selection Trials | basketball |
+| 2027-09-01 | story | Results | Hoop It Up 2027 is a wrap | 180 teams, 4 days, one champion | The full write-up. Start a new line for each paragraph. | Photo link | Instagram post | | | | Hoop It Up | basketball |
+
+- **tag** is the type shown on the coloured label (Selection trials, Circular, Schedule change, Results, Achievement, Event update, Media…). Stories can be filtered by it.
+- **deadline**: the notice shows "Closes in 3 days" (red when it's close) and moves to **Past notices** by itself after that date.
+- **pinned** = `yes`: a notice stays at the top of the board; a story becomes the big **featured** story on the News page. A pinned notice, or one closing within 14 days, also appears in the announcement bar at the top of every page.
+- Posts from the last 7 days get a **New** badge automatically.
+- **attachment**: a link to the circular PDF (Google Drive share link works) adds a **Download** button.
+- **event** / **sport**: write the event's title (as in `events`) or the sport's slug, and the post also appears on that event's or sport's page.
+- Every post gets its own page with a **WhatsApp share** button. If you leave **body** empty, the page shows the summary and a "Read the full story" button to the **link**.
 
 ### 🔗 Registration portal (`settings` tab, set once)
 

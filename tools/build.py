@@ -155,7 +155,7 @@ NAV = [("index.html", "Home", [], []),
        ("about.html", "About", [("about.html", "About Sports Sphere"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities")], []),
        ("sports.html", "Sports", [], ["sport.html"]),
        ("events.html", "Events", [("events.html", "Event calendar"), ("achievements.html", "Achievements")], ["event.html"]),
-       ("news.html", "News", [("news.html", "News &amp; notices"), ("gallery.html", "Gallery")], []),
+       ("news.html", "News", [("news.html", "News &amp; notices"), ("gallery.html", "Gallery")], ["article.html"]),
        ("partner.html", "Partner", [], []), ("contact.html", "Contact", [], [])]
 
 WORDMARK = ('<a href="index.html" class="wordmark" aria-label="Sports Sphere home">'
@@ -473,7 +473,6 @@ def field(id_, label, inner, full=False):
     return '<div class="field%s"><label for="%s">%s</label>%s</div>' % (" full" if full else "", id_, label, inner)
 
 # ================================================================= HOME
-NEWS_HTML, NEWS_COUNT = news_html()
 home = ('<section class="hero"><div class="container hero-grid"><div class="hero-copy">'
         '<span class="eyebrow reveal">MIT-WPU\'s Sports Management &amp; Event Platform</span>'
         '<h1 class="display reveal" data-delay="1">Fueling<br><span class="grad">passion.</span><br>Building<br><span class="grad-champ">champions.</span></h1>'
@@ -520,7 +519,9 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
                                                                                  '<div class="reveal"><p class="lead">Put your brand at the heart of passion, performance and purpose.</p><a class="btn btn-primary mt-2" href="partner.html">Sponsorship packages ' + ARROW + '</a></div>')
         + '<div class="why-grid">' + why_cards() + '</div></div></section>\n'
         '<section class="section"><div class="container">' + head("Previous sponsors", "Trusted<br><span class='grad'>by</span>") + sponsor_strip() + '</div></section>\n'
-        '<section class="section" data-news-wrap' + ('' if NEWS_COUNT >= 2 else ' hidden') + '><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>", '<a class="link-arrow reveal" href="news.html">All news ' + ARROW + '</a>') + '<div class="news-grid" data-render="news" data-limit="3" data-min="2">' + NEWS_HTML + '</div></div></section>\n'
+        '<section class="section" data-news-wrap hidden><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>", '<a class="link-arrow reveal" href="news.html">All news &amp; notices ' + ARROW + '</a>') +
+        '<div class="latest-grid"><div class="news-grid" data-render="news" data-limit="2"></div>'
+        '<div class="notice-panel"><h3 class="panel-title">Notice board</h3><div data-render="notices" data-limit="4"></div></div></div></div></section>\n'
         '<section class="section surface" data-hide-empty hidden><div class="container">' + head("Gallery", "Moments<br><span class='grad'>that matter</span>",
                                                                                          '<a class="link-arrow reveal" href="gallery.html">Full gallery ' + ARROW + '</a>')
         + '<div data-render="gallery" data-limit="8"></div></div></section>\n'
@@ -747,8 +748,13 @@ page("facilities.html", "Facilities", "Sports facilities at MIT-WPU, Pune, inclu
 
 # ================================================================= NEWS
 news = (page_hero("News", "News &amp; notices", "Fresh off<br><span class='grad'>the field.</span>",
-                  "Notices, selection trials, event updates and results from Sports Sphere.") +
-        '<section class="section"><div class="container"><div data-render="news-page">' + NOSCRIPT + '</div></div></section>'
+                  "Notices, selection trials, circulars, event updates, results and stories from Sports Sphere.") +
+        '<section class="section tight" id="notices"><div class="container"><div class="notice-head"><div><span class="eyebrow reveal">Notice board</span>'
+        '<h2 class="h2 reveal">Don\'t miss<br><span class="grad">a deadline</span></h2></div>'
+        '<p class="lead reveal">Selection trials, circulars and schedule changes. Notices move to the archive once their deadline passes.</p></div>'
+        '<div data-render="notices">' + NOSCRIPT + '</div></div></section>'
+        '<section class="section surface" id="stories"><div class="container">' + head("Stories", "News &amp;<br><span class='grad'>stories</span>") +
+        '<div data-render="news-page">' + NOSCRIPT + '</div></div></section>'
         '<section class="section cream"><div class="container">' + head("Follow the action", "Live updates on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>')
 page("news.html", "News & notices", "News, notices, selection trials, event updates and results from Sports Sphere at MIT-WPU.", news)
 
@@ -768,6 +774,8 @@ page("search.html", "Search", "Search the Sports Sphere website.", search)
 # ================================================================= DETAIL PAGES (filled in by content.js from the tables)
 page("sport.html", "Sport", "A sport at MIT-WPU: teams, coaches, venue, achievements and events.",
      '<div data-render="sport-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
+page("article.html", "News", "News and notices from Sports Sphere at MIT-WPU.",
+     '<div data-render="article"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
 page("event.html", "Event", "A Sports Sphere event at MIT-WPU: dates, venue, results and photos.",
      '<div data-render="event-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
 
@@ -776,7 +784,9 @@ _today = datetime.date.today().isoformat()
 with open(os.path.join(ROOT, "sitemap.xml"), "w") as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
             "".join('  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, "" if n == "index.html" else n, _today)
-                    for n in PAGES_BUILT if n not in ("search.html", "sport.html", "event.html")) +
+                    for n in PAGES_BUILT if n not in ("search.html", "sport.html", "event.html", "article.html")) +
+            "".join('  <url><loc>%sarticle.html?n=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, slugify(r.get("slug") or (r["title"] + " " + r.get("date", ""))), _today)
+                    for r in listed(read_csv("news")) if r.get("title")) +
             "".join('  <url><loc>%ssport.html?s=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, r["slug"], _today) for r in SPORTS) +
             "".join('  <url><loc>%sevent.html?e=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, event_slug(e), _today) for e in EVENTS) +
             '</urlset>\n')

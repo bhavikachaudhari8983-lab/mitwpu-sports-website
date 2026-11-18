@@ -203,9 +203,11 @@
     }
   }
 
-  function renderAnnouncement(events, settings) {
+  function renderAnnouncement(events, settings, news) {
     var bar = document.querySelector('[data-render="announcement"]'); if (!bar) return;
     var text = settings.announcement_text, link = safeUrl(settings.announcement_link);
+    var urgent = activeNotices(prepNews(fresh(news || []))).filter(function (n) { return n.pin || (n._dl && daysTo(n._dl) <= 14); })[0];
+    if (!text && urgent) { text = 'Notice: ' + urgent.title + (urgent._dl ? ' · ' + deadlineLabel(urgent) : ''); link = urgent.href; }
     if (!text) {
       var e = events.filter(function (x) { return status(x) !== 'past'; })[0];
       if (!e) return;
@@ -249,49 +251,147 @@
     });
   }
 
-  function newsCard(n) {
-    var url = safeUrl(n.link), img = imgUrl(n.image);
-    var media = img ? '<div class="media"><img src="' + esc(img) + '" alt="" loading="lazy"></div>' : '<div class="media news-ph"><span>' + esc(n.tag || 'News') + '</span></div>';
-    var body = media + '<div class="news-meta">' + (n.tag ? '<span class="pill">' + esc(n.tag) + '</span>' : '') + '<span>' + esc(fmtDate(n._d)) + '</span></div><h3>' + esc(n.title) + '</h3><p>' + esc(n.summary) + '</p>';
-    return url ? '<a class="news-card" href="' + esc(url) + '"' + blank(url) + '>' + body + '</a>' : '<article class="news-card">' + body + '</article>';
+  /* ---------- news: notices (short, dated, deadlines) and stories (each with its own page) ---------- */
+  var TYPE_COLOURS = { 'selection trials': 'orange', trials: 'orange', notice: 'blue', circular: 'blue', 'schedule change': 'red', results: 'green', result: 'green',
+    achievement: 'yellow', 'event update': 'orange', venue: 'blue', media: 'red', press: 'red' };
+  function typeColour(t) {
+    var k = String(t || '').trim().toLowerCase(); if (TYPE_COLOURS[k]) return colour(TYPE_COLOURS[k]);
+    var h = 0; for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 5;
+    return colour(['orange', 'blue', 'green', 'red', 'yellow'][h]);
   }
-  function sortNews(rows) {
-    return rows.map(function (n) { n._d = parseDate(n.date); return n; }).filter(function (n) { return n.title; }).sort(function (a, b) { return (b._d || 0) - (a._d || 0); });
+  function daysTo(d) { return Math.round((d - TODAY) / 864e5); }
+  function prepNews(rows) {
+    return rows.filter(function (n) { return n.title; }).map(function (n) {
+      n._d = parseDate(n.date); n._dl = parseDate(n.deadline);
+      n.kind = /^notice$/i.test(String(n.kind || '').trim()) ? 'notice' : 'story';
+      n.type = n.tag || (n.kind === 'notice' ? 'Notice' : 'News');
+      n.pin = yes(n.pinned);
+      n.slug = slugify(n.slug || (n.title + ' ' + String(n.date || '').trim()));
+      n.href = 'article.html?n=' + n.slug;
+      n.isNew = !!n._d && daysTo(n._d) <= 0 && daysTo(n._d) >= -7;
+      n.closed = !!n._dl && daysTo(n._dl) < 0;
+      return n;
+    }).sort(function (a, b) { return (b._d || 0) - (a._d || 0); });
   }
-  /* News page: every post (archived included), filter by type, search */
+  function deadlineLabel(n) {
+    if (!n._dl) return '';
+    var d = daysTo(n._dl);
+    return d < 0 ? 'Closed ' + fmtDate(n._dl) : d === 0 ? 'Closes today' : d === 1 ? 'Closes tomorrow' : d <= 14 ? 'Closes in ' + d + ' days' : 'Closes ' + fmtDate(n._dl);
+  }
+  function typeChip(n) { return '<span class="type-chip" style="--c:' + typeColour(n.type) + '">' + esc(n.type) + '</span>'; }
+  function badges(n) {
+    return (n.pin && !n.closed ? '<span class="badge pin">Pinned</span>' : '') + (n.isNew ? '<span class="badge new">New</span>' : '') +
+      (n._dl ? '<span class="badge deadline' + (n.closed ? ' closed' : daysTo(n._dl) <= 3 ? ' urgent' : '') + '">' + esc(deadlineLabel(n)) + '</span>' : '');
+  }
+  function newsCard(n, featured) {
+    var img = imgUrl(n.image);
+    var media = img ? '<div class="media"><img src="' + esc(img) + '" alt="" loading="lazy"></div>' : '<div class="media news-ph" style="--c:' + typeColour(n.type) + '"><span>' + esc(n.type) + '</span></div>';
+    return '<a class="news-card' + (featured ? ' featured' : '') + '" href="' + esc(n.href) + '">' + media + '<div class="news-body"><div class="news-meta">' + typeChip(n) +
+      '<span>' + esc(fmtDate(n._d)) + '</span>' + badges(n) + '</div><h3>' + esc(n.title) + '</h3>' + (n.summary ? '<p>' + esc(n.summary) + '</p>' : '') +
+      (featured ? '<span class="link-arrow">Read the story ' + ARROW + '</span>' : '') + '</div></a>';
+  }
+  function noticeRow(n) {
+    var d = n._d, att = safeUrl(n.attachment);
+    return '<li class="notice' + (n.pin && !n.closed ? ' is-pinned' : '') + (n.closed ? ' is-closed' : '') + '" style="--c:' + typeColour(n.type) + '">' +
+      '<div class="n-date">' + (d ? '<b>' + d.getDate() + '</b><span>' + MONTHS[d.getMonth()] + '</span>' : '') + '</div>' +
+      '<div class="n-body"><div class="news-meta">' + typeChip(n) + badges(n) + '</div><h3><a href="' + esc(n.href) + '">' + esc(n.title) + '</a></h3>' + (n.summary ? '<p>' + esc(n.summary) + '</p>' : '') + '</div>' +
+      (att ? '<a class="n-file" href="' + esc(att) + '" target="_blank" rel="noopener" aria-label="Download: ' + esc(n.title) + '">' + icon('clipboard') + '<span>Download</span></a>' : '') + '</li>';
+  }
+  /* Notice board: active notices (pinned first, then soonest deadline, then newest); closed ones go to "past notices" */
+  function activeNotices(items) {
+    return items.filter(function (n) { return n.kind === 'notice' && !n.closed; }).sort(function (a, b) {
+      return (b.pin - a.pin) || ((a._dl || 9e15) - (b._dl || 9e15)) || ((b._d || 0) - (a._d || 0));
+    });
+  }
+  function renderNotices(rows) {
+    document.querySelectorAll('[data-render="notices"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit'), items = prepNews(limit ? fresh(rows) : listed(rows));
+      var act = activeNotices(items), past = items.filter(function (n) { return n.kind === 'notice' && n.closed; });
+      var shown = limit ? act.slice(0, limit) : act;
+      box.innerHTML = (shown.length ? '<ul class="notice-list">' + shown.map(noticeRow).join('') + '</ul>' :
+          '<p class="empty small">No open notices right now. Selection trials, circulars and schedule changes appear here.</p>') +
+        (!limit && past.length ? '<details class="past-notices"><summary>Past notices (' + past.length + ')</summary><ul class="notice-list">' + past.map(noticeRow).join('') + '</ul></details>' : '') +
+        (limit && act.length > limit ? '<a class="link-arrow mt-2" href="news.html#notices">All notices ' + ARROW + '</a>' : '');
+      box.setAttribute('data-count', shown.length);
+    });
+  }
+  /* Stories on the news page: a featured story, then a filterable grid (type, year, search) */
   function renderNewsPage(rows) {
     var box = document.querySelector('[data-render="news-page"]'); if (!box) return;
-    var items = sortNews(listed(rows));
-    if (!items.length) { box.innerHTML = emptyMsg('No news yet. Notices, selection trials, event updates and results will appear here. Follow @sportssphere__mitwpu for the latest.'); return; }
-    var tags = []; items.forEach(function (n) { if (n.tag && tags.indexOf(n.tag) < 0) tags.push(n.tag); });
-    var tag = param('tag'), q = '';
-    box.innerHTML = '<div class="toolbar"><div class="filters" role="group" aria-label="Filter news by type">' +
-      ['All'].concat(tags).map(function (t) { var v = t === 'All' ? '' : t; return '<button class="filter-btn" data-tag="' + esc(v) + '" aria-pressed="' + (v === tag) + '">' + esc(t) + '</button>'; }).join('') +
-      '</div><label class="search-field"><span class="visually-hidden">Search news</span><input type="search" placeholder="Search news" data-q></label></div>' +
+    var items = prepNews(listed(rows)).filter(function (n) { return n.kind === 'story'; });
+    if (!items.length) { box.innerHTML = emptyMsg('No stories yet. Event write-ups, results and achievements will appear here. Follow @sportssphere__mitwpu for the latest.'); return; }
+    var types = uniq(items, 'type'), years = uniq(items.map(function (n) { return { y: n._d ? String(n._d.getFullYear()) : '' }; }), 'y').sort().reverse();
+    var f = { type: param('type'), year: '' }, q = '';
+    var feat = items.filter(function (n) { return n.pin; })[0] || items[0];
+    box.innerHTML = '<div data-feature></div><div class="toolbar">' +
+      (types.length > 1 ? '<div class="filters" role="group" aria-label="Filter stories by type">' + ['All'].concat(types).map(function (t) { var v = t === 'All' ? '' : t; return '<button class="filter-btn" data-type="' + esc(v) + '" aria-pressed="' + (v === f.type) + '">' + esc(t) + '</button>'; }).join('') + '</div>' : '') +
+      filterSelect('year', 'Year', years, '') + '<label class="search-field"><span class="visually-hidden">Search stories</span><input type="search" placeholder="Search stories" data-q></label></div>' +
       '<p class="result-count" aria-live="polite" data-count></p><div class="news-grid wide" data-list></div>';
-    var out = box.querySelector('[data-list]'), cnt = box.querySelector('[data-count]');
+    var out = box.querySelector('[data-list]'), cnt = box.querySelector('[data-count]'), fb = box.querySelector('[data-feature]');
     function draw() {
-      var ws = words(q), shown = items.filter(function (n) {
-        var hay = (n.title + ' ' + n.summary + ' ' + n.tag).toLowerCase();
-        return (!tag || n.tag === tag) && ws.every(function (w) { return hay.indexOf(w) > -1; });
+      var ws = words(q), filtering = f.type || f.year || ws.length;
+      var shown = items.filter(function (n) {
+        var hay = (n.title + ' ' + n.summary + ' ' + n.body + ' ' + n.type).toLowerCase();
+        return (!f.type || n.type === f.type) && (!f.year || (n._d && String(n._d.getFullYear()) === f.year)) && ws.every(function (w) { return hay.indexOf(w) > -1; });
       });
-      out.innerHTML = shown.length ? shown.map(newsCard).join('') : emptyMsg('No posts match your search.');
-      cnt.textContent = shown.length + (shown.length === 1 ? ' post' : ' posts');
+      fb.innerHTML = filtering ? '' : newsCard(feat, true);
+      var grid = filtering ? shown : shown.filter(function (n) { return n !== feat; });
+      out.innerHTML = grid.length ? grid.map(function (n) { return newsCard(n); }).join('') : (filtering ? emptyMsg('No stories match your search.') : '');
+      cnt.textContent = filtering ? shown.length + (shown.length === 1 ? ' story' : ' stories') : '';
     }
-    box.querySelector('.filters').onclick = function (ev) { var b = ev.target.closest('[data-tag]'); if (!b) return; tag = b.getAttribute('data-tag'); box.querySelectorAll('[data-tag]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); draw(); };
+    var fl = box.querySelector('.filters');
+    if (fl) fl.onclick = function (ev) { var b = ev.target.closest('[data-type]'); if (!b) return; f.type = b.getAttribute('data-type'); fl.querySelectorAll('[data-type]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); draw(); };
+    box.querySelectorAll('[data-f]').forEach(function (s) { s.onchange = function () { f[s.getAttribute('data-f')] = s.value; draw(); }; });
     box.querySelector('[data-q]').oninput = function (ev) { q = ev.target.value; draw(); };
     draw();
   }
-
+  /* Home + related lists: latest stories */
   function renderNews(rows) {
-    var items = rows.map(function (n) { n._d = parseDate(n.date); return n; }).filter(function (n) { return n.title; })
-      .sort(function (a, b) { return (b._d || 0) - (a._d || 0); });
+    var items = prepNews(rows).filter(function (n) { return n.kind === 'story'; });
     document.querySelectorAll('[data-render="news"]').forEach(function (box) {
-      var limit = +box.getAttribute('data-limit') || 3, wrap = box.closest('[data-news-wrap]');
-      if (items.length < (+box.getAttribute('data-min') || 1)) { if (wrap) wrap.hidden = true; return; }
-      box.innerHTML = items.slice(0, limit).map(newsCard).join('');
-      if (wrap) wrap.hidden = false;
+      var limit = +box.getAttribute('data-limit') || 3;
+      box.innerHTML = items.slice(0, limit).map(function (n) { return newsCard(n); }).join('');
+      box.setAttribute('data-count', Math.min(limit, items.length));
     });
+  }
+  function storyList(items) { return '<div class="news-grid wide">' + items.map(function (n) { return newsCard(n); }).join('') + '</div>'; }
+
+  /* ---------- one news item: article.html?n=<slug> ---------- */
+  function renderArticle(d) {
+    var box = document.querySelector('[data-render="article"]'); if (!box) return;
+    var all = prepNews(listed(d.news)), key = slugify(param('n')), n = all.filter(function (x) { return x.slug === key; })[0];
+    if (!n) { box.innerHTML = notFound('Story not found', 'It may have been renamed or removed. All news and notices are on the news page.', 'news.html', 'News & notices'); return; }
+    setTitle(n.title);
+    var img = imgUrl(n.image), att = safeUrl(n.attachment), link = safeUrl(n.link);
+    var ev = n.event ? d.events.filter(function (e) { return slugify(e.title) === slugify(n.event); }).sort(function (a, b) { return Math.abs(a.start - (n._d || TODAY)) - Math.abs(b.start - (n._d || TODAY)); })[0] : null;
+    var sp = n.sport ? d.sports.filter(function (s) { return sameSport(n.sport, s); })[0] : null;
+    var paras = String(n.body || '').split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var more = all.filter(function (x) { return x !== n && x.kind === n.kind && (x.kind === 'story' || !x.closed); }).slice(0, 3);
+    var share = location.href.split('#')[0];
+    var facts = [['Published', fmtDate(n._d)], ['Type', n.type]];
+    if (n._dl) facts.push(['Deadline', fmtDate(n._dl) + (n.closed ? ' (closed)' : '')]);
+    box.innerHTML = '<section class="page-hero article-hero" data-mark="' + esc(n.kind === 'notice' ? 'Notice' : 'News') + '"><div class="container">' + crumbs([['News', 'news.html'], [n.title]]) +
+      '<div class="news-meta">' + typeChip(n) + '<span>' + esc(fmtDate(n._d)) + '</span>' + badges(n) + '</div><h1 class="h1 article-title">' + esc(n.title) + '</h1>' +
+      (n.summary ? '<p class="lead">' + esc(n.summary) + '</p>' : '') + '</div></section>' +
+      '<section class="section article-section"><div class="container article-grid"><article class="article-main">' +
+      (img ? '<figure class="article-img"><img src="' + esc(img) + '" alt=""></figure>' : '') +
+      (paras.length ? '<div class="prose">' + paras.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + '</div>' : '') +
+      ((att || link) ? '<div class="hero-actions">' + (att ? '<a class="btn btn-primary" href="' + esc(att) + '" target="_blank" rel="noopener">Download the notice ' + ARROW + '</a>' : '') +
+        (link ? '<a class="btn btn-ghost" href="' + esc(link) + '"' + blank(link) + '>' + (paras.length ? 'Original source' : 'Read the full story') + '</a>' : '') + '</div>' : '') +
+      (!paras.length && !link && !att ? '<p class="awaiting">More details will be added by the Sports Office.</p>' : '') +
+      '<div class="share"><span>Share</span><a class="share-btn wa" href="https://wa.me/?text=' + encodeURIComponent(n.title + ' ' + share) + '" target="_blank" rel="noopener">WhatsApp</a>' +
+      '<button type="button" class="share-btn" data-copy="' + esc(share) + '">Copy link</button></div></article>' +
+      '<aside class="article-aside"><dl class="fact-list">' + facts.map(function (x) { return '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') +
+      (ev ? '<div><dt>Event</dt><dd><a href="event.html?e=' + esc(ev.slug) + '">' + esc(ev.title) + '</a></dd></div>' : '') +
+      (sp ? '<div><dt>Sport</dt><dd><a href="sport.html?s=' + esc(sp.slug) + '">' + esc(sp.name) + '</a></dd></div>' : '') + '</dl>' +
+      '<a class="link-arrow mt-2" href="news.html">All news &amp; notices ' + ARROW + '</a></aside></div></section>' +
+      (more.length ? '<section class="section surface"><div class="container">' + sectionHead('Keep reading', 'More<br><span class="grad">' + (n.kind === 'notice' ? 'notices' : 'news') + '</span>') + storyList(more) + '</div></section>' : '');
+    var cp = box.querySelector('[data-copy]');
+    if (cp) cp.onclick = function () {
+      var done = function () { cp.textContent = 'Link copied'; setTimeout(function () { cp.textContent = 'Copy link'; }, 2000); };
+      if (navigator.clipboard) navigator.clipboard.writeText(cp.getAttribute('data-copy')).then(done, function () { prompt('Copy this link', cp.getAttribute('data-copy')); });
+      else prompt('Copy this link', cp.getAttribute('data-copy'));
+    };
   }
 
   function renderResults(rows, events) {
@@ -528,6 +628,8 @@
         '<a class="link-arrow mt-3" href="achievements.html?sport=' + encodeURIComponent(ach[0].sport) + '">All ' + esc(sp.name) + ' achievements ' + ARROW + '</a></div></section>' : '') +
       '<section class="section"><div class="container">' + sectionHead('Events', esc(sp.name) + '<br><span class="grad">on the calendar</span>') +
       (evs.length ? '<div class="event-list">' + (upcoming.length ? upcoming : evs.slice(-3)).map(function (e) { return eventRow(e, false); }).join('') + '</div>' : emptyMsg('No ' + esc(sp.name) + ' events on the calendar yet.')) + '</div></section>' +
+      (function () { var rel = prepNews(listed(d.news)).filter(function (x) { return x.sport && sameSport(x.sport, sp); }).slice(0, 3);
+        return rel.length ? '<section class="section"><div class="container">' + sectionHead('News', esc(sp.name) + '<br><span class="grad">news</span>') + storyList(rel) + '</div></section>' : ''; })() +
       '<section class="section surface" data-hide-empty hidden><div class="container">' + sectionHead('Gallery', 'In<br><span class="grad">action</span>') + '<div data-render-local="gallery" data-sport="' + esc(sp.slug) + '"></div></div></section>';
     var g = box.querySelector('[data-render-local="gallery"]'); g.setAttribute('data-render', 'gallery'); renderGallery(d.gallery);
   }
@@ -565,6 +667,8 @@
         results.map(function (x) { return '<li><b>' + esc(x.sport || 'Overall') + '</b><span class="gold">' + esc(x.winner) + '</span>' + (x.runner_up ? '<span class="silver">' + esc(x.runner_up) + '</span>' : '') + (x.notes ? '<em>' + esc(x.notes) + '</em>' : '') + '</li>'; }).join('') +
         '</ul></article></div>' : emptyMsg(st === 'past' ? 'Results for this event haven\'t been posted yet.' : 'Results will be posted here after the event.')) + '</div></section>' +
       '<section class="section" data-hide-empty hidden><div class="container">' + sectionHead('Gallery', 'Photos &amp;<br><span class="grad">videos</span>') + '<div data-render-local="gallery" data-event="' + esc(e.title) + '"></div></div></section>' +
+      (function () { var rel = prepNews(listed(d.news)).filter(function (x) { return x.event && slugify(x.event) === slugify(e.title); }).slice(0, 3);
+        return rel.length ? '<section class="section"><div class="container">' + sectionHead('News', 'From<br><span class="grad">the event</span>') + storyList(rel) + '</div></section>' : ''; })() +
       (more.length ? '<section class="section surface"><div class="container">' + sectionHead('Also this season', 'Coming<br><span class="grad">up</span>') + '<div class="event-list">' + more.map(function (x) { return eventRow(x, false); }).join('') + '</div></div></section>' : '');
     var g = box.querySelector('[data-render-local="gallery"]'); g.setAttribute('data-render', 'gallery'); renderGallery(d.gallery);
   }
@@ -584,7 +688,7 @@
     PAGES.forEach(function (p) { idx.push({ type: 'Page', title: p[0], text: p[2], url: p[1] }); });
     d.sports.forEach(function (s) { idx.push({ type: 'Sport', title: s.name, text: s.summary + ' ' + s.about, url: 'sport.html?s=' + s.slug }); });
     d.events.forEach(function (e) { idx.push({ type: 'Event', title: e.title, text: e.description + ' ' + e.category + ' ' + e.season + ' ' + range(e).long, url: 'event.html?e=' + e.slug, sub: range(e).long }); });
-    listed(d.news).forEach(function (n) { idx.push({ type: 'News', title: n.title, text: n.summary + ' ' + n.tag, url: safeUrl(n.link) || 'news.html', sub: n.date }); });
+    prepNews(listed(d.news)).forEach(function (n) { idx.push({ type: n.kind === 'notice' ? 'Notice' : 'News', title: n.title, text: n.summary + ' ' + n.type + ' ' + n.body, url: n.href, sub: fmtDate(n._d) }); });
     listed(d.achievements).forEach(function (a) { idx.push({ type: 'Achievement', title: a.title, text: [a.winner, a.competition, a.description, a.sport, a.year].join(' '), url: 'achievements.html?q=' + encodeURIComponent(a.title), sub: a.year }); });
     listed(d.facilities).forEach(function (f) { idx.push({ type: 'Facility', title: f.name, text: f.description + ' ' + f.sports + ' ' + f.location, url: 'facilities.html#' + (f.slug || slugify(f.name)) }); });
     listed(d.people).forEach(function (p) { idx.push({ type: 'People', title: p.name, text: p.role + ' ' + p.sport + ' ' + p.bio, url: /leader/i.test(p.group) ? 'about.html#people' : 'teams.html', sub: p.role }); });
@@ -635,9 +739,9 @@
   /* Which tables does this page need? (announcement bar, dates and forms need events + settings on every page) */
   var NEED = { calendar: [], next: [], spotlight: [], stats: ['stats'], sponsors: ['sponsors'], news: ['news'], 'news-page': ['news'], results: ['results'],
     achievements: ['achievements'], people: ['people'], teams: ['teams', 'sports'], facilities: ['facilities'], gallery: ['gallery'], 'sports-grid': ['sports'],
-    'sport-detail': ['sports', 'teams', 'people', 'achievements', 'facilities', 'gallery', 'results'], 'event-detail': ['sports', 'results', 'gallery'],
+    'sport-detail': ['sports', 'teams', 'people', 'achievements', 'facilities', 'gallery', 'results'], 'event-detail': ['sports', 'results', 'gallery'], article: ['sports'], notices: [],
     search: ['sports', 'news', 'achievements', 'facilities', 'people', 'teams'] };
-  var tables = ['events', 'settings'];
+  var tables = ['events', 'settings', 'news'];
   document.querySelectorAll('[data-render]').forEach(function (el) { (NEED[el.getAttribute('data-render')] || []).forEach(function (t) { if (tables.indexOf(t) < 0) tables.push(t); }); });
   if (document.querySelector('[data-render="calendar"],[data-render="event-detail"]') && tables.indexOf('results') < 0) tables.push('results');
 
@@ -659,14 +763,17 @@
 
     var cur = currentSeason(events);
     if (cur) document.querySelectorAll('[data-season-text]').forEach(function (el) { el.textContent = cur.replace('-', '–'); });
-    renderAnnouncement(events, settings);
+    renderAnnouncement(events, settings, d.news);
     renderSpotlight(events);
     renderNext(events);
     renderCalendar(events);
     renderDates(events);
     renderResults(listed(d.results), events);
     renderNews(fresh(d.news));
+    renderNotices(d.news);
     renderNewsPage(d.news);
+    renderArticle(d);
+    document.querySelectorAll('[data-news-wrap]').forEach(function (w) { w.hidden = !w.querySelector('.news-card,.notice'); });
     renderAchievements(d.achievements);
     renderPeople(d.people);
     renderTeams(d.teams, sports);

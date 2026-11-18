@@ -12,6 +12,8 @@ Redeploy after any change (edits to `content/*.csv` included):
 npx vercel@latest deploy --prod
 ```
 
+**Visitor statistics:** Vercel Web Analytics is enabled for the project (no cookies, no personal data). See it in the Vercel dashboard → `sports-sphere-website` → Analytics. The loader in every page skips localhost.
+
 `.vercelignore` keeps `tools/`, this README and `content/HOW-TO-UPDATE.md` off the live site.
 
 ## Preview locally

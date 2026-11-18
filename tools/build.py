@@ -242,6 +242,9 @@ def page(fname, title, desc, body):
             '<link rel="stylesheet" href="' + asset("assets/css/style.css") + '">\n</head>\n<body class="page-' + fname[:-5] + '">\n'
             + header(fname) + '\n<main id="main">\n' + body + '\n</main>\n' + FOOTER +
             '\n<script type="application/json" id="ss-icons">' + ICONS_JSON + '</script>'
+            '\n<script>/* Vercel Web Analytics: privacy-friendly visit counts, no cookies; only on the live site */'
+            'window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};'
+            'if(!/^(localhost|127\\.|0\\.0\\.0\\.0)/.test(location.hostname)){var s=document.createElement("script");s.defer=true;s.src="/_vercel/insights/script.js";document.head.appendChild(s);}</script>'
             '\n<script src="' + asset("assets/js/config.js") + '" defer></script>\n<script src="' + asset("assets/js/content.js") + '" defer></script>\n<script src="' + asset("assets/js/main.js") + '" defer></script>\n</body>\n</html>\n')
     with open(os.path.join(ROOT, fname), "w") as f:
         f.write(html)

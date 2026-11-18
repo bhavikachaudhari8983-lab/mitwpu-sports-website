@@ -28,6 +28,27 @@
     window.addEventListener('resize', function () { if (window.innerWidth > 900) setOpen(false); });
   }
 
+  /* Dropdown menus: hover/focus open them on desktop; the chevron button opens them for touch and keyboard */
+  document.querySelectorAll('.has-sub').forEach(function (li) {
+    var btn = li.querySelector('.sub-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = !li.classList.contains('is-open');
+      document.querySelectorAll('.has-sub.is-open').forEach(function (o) { o.classList.remove('is-open'); o.querySelector('.sub-toggle').setAttribute('aria-expanded', 'false'); });
+      li.classList.toggle('is-open', open); btn.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.has-sub')) return;
+    document.querySelectorAll('.has-sub.is-open').forEach(function (o) { o.classList.remove('is-open'); o.querySelector('.sub-toggle').setAttribute('aria-expanded', 'false'); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var o = document.querySelector('.has-sub.is-open'); if (!o) return;
+    o.classList.remove('is-open'); var b = o.querySelector('.sub-toggle'); b.setAttribute('aria-expanded', 'false'); b.focus();
+  });
+
   /* Reveal-on-scroll */
   var reveals = document.querySelectorAll('.reveal');
   if ('IntersectionObserver' in window) {

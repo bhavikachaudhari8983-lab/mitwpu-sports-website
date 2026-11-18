@@ -1,8 +1,11 @@
 /* Sports Sphere — live content.
-   Reads events / stats / sponsors / news / results / settings from a Google Sheet
-   (if set in config.js) or from the /content CSV files, then renders:
-   season calendar + archive, "next up", spotlight countdown, announcement bar,
-   results, news, stats, sponsors, event dates inside the page, and the email fallback for forms. */
+   Reads the content tables (events, stats, sponsors, news, results, settings, sports, people, achievements,
+   facilities, teams, gallery) from a Google Sheet (if set in config.js) or from the /content CSV files, then renders:
+   season calendar + archive, "next up", spotlight countdown, announcement bar, results, news, stats, sponsors,
+   event and sport detail pages, achievements, people, teams, facilities, gallery and site search.
+   Every table can have a "status" column: draft (hidden everywhere), archived (kept on archive/listing pages,
+   hidden from the home page and teasers) or empty/published.
+   Only the tables a page actually uses are loaded. JS-rendered markup never uses .reveal (it would stay invisible). */
 (function () {
   'use strict';
   var CFG = window.SS_CONFIG || {};
@@ -21,6 +24,30 @@
   function colour(c) { c = String(c || '').trim().toLowerCase(); return COLORS[c] || (/^#[0-9a-f]{3,8}$/i.test(c) ? c : COLORS.orange); }
   function yes(v) { return /^(y|yes|true|1)$/i.test(String(v || '').trim()); }
   function isExternal(u) { return /^https?:\/\//i.test(u); }
+  function blank(u) { return isExternal(u) ? ' target="_blank" rel="noopener"' : ''; }
+  function slugify(v) { return String(v || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function param(k) { try { return new URLSearchParams(location.search).get(k) || ''; } catch (e) { return ''; } }
+  function fmtDate(d) { return d ? d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() : ''; }
+  function list(v) { return String(v || '').split(/\s*[;|\n]\s*/).filter(Boolean); }
+  function words(v) { return String(v || '').toLowerCase().split(/\s+/).filter(Boolean); }
+  /* Google Drive share links → a direct image; anything else must be a safe URL */
+  function imgUrl(u) {
+    u = safeUrl(u); var m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{20,})/);
+    return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : u;
+  }
+  function youtubeId(u) { var m = String(u || '').match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : ''; }
+  /* status column: draft rows never show; archived rows only on listing/archive pages */
+  function stateOf(r) { var v = String(r.status || '').trim().toLowerCase(); return /^(draft|hidden|unpublished)$/.test(v) ? 'draft' : /^archived?$/.test(v) ? 'archived' : 'published'; }
+  function listed(rows) { return rows.filter(function (r) { return stateOf(r) !== 'draft'; }); }
+  function fresh(rows) { return rows.filter(function (r) { return stateOf(r) === 'published'; }); }
+  var ICONS = {}; try { ICONS = JSON.parse((document.getElementById('ss-icons') || {}).textContent || '{}'); } catch (e) { ICONS = {}; }
+  function icon(k) { return ICONS[k] || ICONS.trophy || ''; }
+  function initials(n) { return String(n || '').replace(/^(prof|dr|mr|mrs|ms|shri|smt)\.?\s+/gi, '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
+  function emptyMsg(t) { return '<p class="empty">' + t + '</p>'; }
+  /* A clearly labelled gap the Sports Office still has to fill — never shown as if it were real content */
+  function pendingNote(t) { return '<div class="pending-note"><b>Awaiting confirmation</b><p>' + t + '</p></div>'; }
+  function hideWrap(box, hide) { var w = box.closest('[data-hide-empty]'); if (w) w.hidden = hide; }
+  function sameSport(v, sp) { var k = slugify(v); return !!k && (k === sp.slug || k === slugify(sp.name)); }
 
   function parseCSV(text) {
     var rows = [], row = [], cell = '', q = false, i, c;
@@ -79,11 +106,10 @@
     var action = '';
     if (st !== 'past') {
       if (e.register) action = '<a class="btn btn-dark btn-sm" href="' + esc(e.register) + '"' + (isExternal(e.register) ? ' target="_blank" rel="noopener"' : '') + '>Register</a>';
-      else if (e.details) action = '<a class="btn btn-dark btn-sm" href="' + esc(e.details) + '">Details</a>';
-      else action = '<span class="soon">Registration opens soon</span>';
-    } else if (e.details) action = '<a class="link-arrow" href="' + esc(e.details) + '">Details ' + ARROW + '</a>';
+      else action = '<a class="btn btn-ghost btn-sm" href="event.html?e=' + esc(e.slug) + '">Details</a>';
+    } else action = '<a class="link-arrow" href="event.html?e=' + esc(e.slug) + '">' + (e.hasResults ? 'Results' : 'Details') + ' ' + ARROW + '</a>';
     return '<article class="' + cls + '" style="--c:' + e.colour + '"><div class="event-date"><strong>' + esc(r.day) + '</strong><span>' + esc(r.month) + '</span></div>' +
-      '<div class="event-info"><h3>' + esc(e.title) + '</h3><p>' + esc(e.description) + '</p></div>' +
+      '<div class="event-info"><h3><a href="event.html?e=' + esc(e.slug) + '">' + esc(e.title) + '</a></h3><p>' + esc(e.description) + '</p></div>' +
       (e.category ? '<span class="pill">' + esc(e.category) + '</span>' : '<span></span>') + '<span class="status">' + label + '</span>' + action + '</article>';
   }
 
@@ -92,11 +118,21 @@
     var seasons = []; events.forEach(function (e) { if (seasons.indexOf(e.season) < 0) seasons.push(e.season); });
     var current = currentSeason(events);
     var tabs = document.querySelector('[data-render="season-tabs"]');
+    var stTabs = document.querySelector('[data-render="status-tabs"]'), want = param('show') || 'all', shown = current;
+    var LABEL = { all: 'All', upcoming: 'Upcoming', live: 'Happening now', past: 'Completed' };
     function draw(season) {
-      var list = events.filter(function (e) { return e.season === season; });
-      var next = list.filter(function (e) { return status(e) !== 'past'; })[0];
+      shown = season;
+      var all = events.filter(function (e) { return e.season === season; });
+      var next = all.filter(function (e) { return status(e) !== 'past'; })[0];
+      var list = all.filter(function (e) { return want === 'all' || status(e) === want; });
+      if (stTabs) {
+        stTabs.innerHTML = ['all', 'upcoming', 'live', 'past'].map(function (k) {
+          var n = k === 'all' ? all.length : all.filter(function (e) { return status(e) === k; }).length;
+          return '<button class="filter-btn" data-status="' + k + '" aria-pressed="' + (k === want) + '">' + LABEL[k] + ' <span class="count">' + n + '</span></button>';
+        }).join('');
+      }
       box.innerHTML = list.length ? list.map(function (e) { return eventRow(e, e === next && status(e) === 'upcoming'); }).join('') :
-        '<p class="empty">The calendar for this season is coming soon.</p>';
+        '<p class="empty">' + (all.length ? 'No ' + LABEL[want].toLowerCase() + ' events in this season.' : 'The calendar for this season is coming soon.') + '</p>';
       var label = document.querySelector('[data-render="season-label"]'); if (label) label.textContent = 'Season ' + season.replace('-', '–');
     }
     if (tabs) {
@@ -109,6 +145,7 @@
         draw(b.getAttribute('data-season'));
       };
     }
+    if (stTabs) stTabs.onclick = function (ev) { var b = ev.target.closest('[data-status]'); if (!b) return; want = b.getAttribute('data-status'); draw(shown); };
     draw(current);
   }
 
@@ -212,18 +249,47 @@
     });
   }
 
+  function newsCard(n) {
+    var url = safeUrl(n.link), img = imgUrl(n.image);
+    var media = img ? '<div class="media"><img src="' + esc(img) + '" alt="" loading="lazy"></div>' : '<div class="media news-ph"><span>' + esc(n.tag || 'News') + '</span></div>';
+    var body = media + '<div class="news-meta">' + (n.tag ? '<span class="pill">' + esc(n.tag) + '</span>' : '') + '<span>' + esc(fmtDate(n._d)) + '</span></div><h3>' + esc(n.title) + '</h3><p>' + esc(n.summary) + '</p>';
+    return url ? '<a class="news-card" href="' + esc(url) + '"' + blank(url) + '>' + body + '</a>' : '<article class="news-card">' + body + '</article>';
+  }
+  function sortNews(rows) {
+    return rows.map(function (n) { n._d = parseDate(n.date); return n; }).filter(function (n) { return n.title; }).sort(function (a, b) { return (b._d || 0) - (a._d || 0); });
+  }
+  /* News page: every post (archived included), filter by type, search */
+  function renderNewsPage(rows) {
+    var box = document.querySelector('[data-render="news-page"]'); if (!box) return;
+    var items = sortNews(listed(rows));
+    if (!items.length) { box.innerHTML = emptyMsg('No news yet. Notices, selection trials, event updates and results will appear here. Follow @sportssphere__mitwpu for the latest.'); return; }
+    var tags = []; items.forEach(function (n) { if (n.tag && tags.indexOf(n.tag) < 0) tags.push(n.tag); });
+    var tag = param('tag'), q = '';
+    box.innerHTML = '<div class="toolbar"><div class="filters" role="group" aria-label="Filter news by type">' +
+      ['All'].concat(tags).map(function (t) { var v = t === 'All' ? '' : t; return '<button class="filter-btn" data-tag="' + esc(v) + '" aria-pressed="' + (v === tag) + '">' + esc(t) + '</button>'; }).join('') +
+      '</div><label class="search-field"><span class="visually-hidden">Search news</span><input type="search" placeholder="Search news" data-q></label></div>' +
+      '<p class="result-count" aria-live="polite" data-count></p><div class="news-grid wide" data-list></div>';
+    var out = box.querySelector('[data-list]'), cnt = box.querySelector('[data-count]');
+    function draw() {
+      var ws = words(q), shown = items.filter(function (n) {
+        var hay = (n.title + ' ' + n.summary + ' ' + n.tag).toLowerCase();
+        return (!tag || n.tag === tag) && ws.every(function (w) { return hay.indexOf(w) > -1; });
+      });
+      out.innerHTML = shown.length ? shown.map(newsCard).join('') : emptyMsg('No posts match your search.');
+      cnt.textContent = shown.length + (shown.length === 1 ? ' post' : ' posts');
+    }
+    box.querySelector('.filters').onclick = function (ev) { var b = ev.target.closest('[data-tag]'); if (!b) return; tag = b.getAttribute('data-tag'); box.querySelectorAll('[data-tag]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); draw(); };
+    box.querySelector('[data-q]').oninput = function (ev) { q = ev.target.value; draw(); };
+    draw();
+  }
+
   function renderNews(rows) {
     var items = rows.map(function (n) { n._d = parseDate(n.date); return n; }).filter(function (n) { return n.title; })
       .sort(function (a, b) { return (b._d || 0) - (a._d || 0); });
     document.querySelectorAll('[data-render="news"]').forEach(function (box) {
       var limit = +box.getAttribute('data-limit') || 3, wrap = box.closest('[data-news-wrap]');
       if (items.length < (+box.getAttribute('data-min') || 1)) { if (wrap) wrap.hidden = true; return; }
-      box.innerHTML = items.slice(0, limit).map(function (n) {
-        var url = safeUrl(n.link), d = n._d ? n._d.getDate() + ' ' + MONTHS[n._d.getMonth()] + ' ' + n._d.getFullYear() : '';
-        var img = n.image ? '<div class="media"><img src="' + esc(safeUrl(n.image)) + '" alt="" loading="lazy"></div>' : '<div class="media news-ph"><span>' + esc(n.tag || 'News') + '</span></div>';
-        var body = img + '<div class="news-meta">' + (n.tag ? '<span class="pill">' + esc(n.tag) + '</span>' : '') + '<span>' + esc(d) + '</span></div><h3>' + esc(n.title) + '</h3><p>' + esc(n.summary) + '</p>';
-        return url ? '<a class="news-card" href="' + esc(url) + '"' + (isExternal(url) ? ' target="_blank" rel="noopener"' : '') + '>' + body + '</a>' : '<article class="news-card">' + body + '</article>';
-      }).join('');
+      box.innerHTML = items.slice(0, limit).map(newsCard).join('');
       if (wrap) wrap.hidden = false;
     });
   }
@@ -246,6 +312,296 @@
         }).join('') + '</ul></article>';
     }).join('');
     if (wrap) wrap.hidden = false;
+  }
+
+  /* ---------- shared bits for the new sections ---------- */
+  function statusPill(e) {
+    var st = status(e);
+    return '<span class="status-pill is-' + st + '">' + (st === 'live' ? '<i class="live-dot"></i>Happening now' : st === 'past' ? 'Completed' : 'Upcoming') + '</span>';
+  }
+  function filterSelect(key, label, values, chosen) {
+    if (values.length < 2) return '';
+    return '<label class="select-field"><span>' + esc(label) + '</span><select data-f="' + key + '"><option value="">All</option>' +
+      values.map(function (v) { return '<option' + (v === chosen ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select></label>';
+  }
+  function uniq(rows, key) { var out = []; rows.forEach(function (r) { var v = String(r[key] || '').trim(); if (v && out.indexOf(v) < 0) out.push(v); }); return out; }
+  function sectionHead(eyebrow, title) { return '<div class="section-head"><div><span class="eyebrow">' + eyebrow + '</span><h2 class="h2">' + title + '</h2></div></div>'; }
+  function crumbs(parts) {
+    return '<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a>' + parts.map(function (p, i) {
+      return '<span>/</span>' + (p[1] && i < parts.length - 1 ? '<a href="' + p[1] + '">' + esc(p[0]) + '</a>' : '<span>' + esc(p[0]) + '</span>');
+    }).join('') + '</nav>';
+  }
+  function setTitle(t) { document.title = t + ' | Sports Sphere · MIT-WPU'; }
+
+  /* ---------- achievements ---------- */
+  function achievementCard(a) {
+    var url = safeUrl(a.link), img = imgUrl(a.image);
+    return '<article class="ach-card" style="--c:' + colour(a.level === 'International' ? 'red' : a.level === 'National' ? 'orange' : 'blue') + '">' +
+      (img ? '<div class="media"><img src="' + esc(img) + '" alt="" loading="lazy"></div>' : '') +
+      '<div class="ach-body"><div class="ach-meta"><span class="year">' + esc(a.year) + '</span>' + (a.sport ? '<span class="pill">' + esc(a.sport) + '</span>' : '') +
+      (a.level ? '<span class="pill soft">' + esc(a.level) + '</span>' : '') + '<span class="medal">' + icon('medal') + '</span></div>' +
+      '<h3>' + esc(a.title) + '</h3>' + (a.winner ? '<p class="who">' + esc(a.winner) + '</p>' : '') +
+      (a.competition ? '<p class="comp">' + esc(a.competition) + '</p>' : '') + (a.description ? '<p>' + esc(a.description) + '</p>' : '') +
+      (url ? '<a class="link-arrow" href="' + esc(url) + '"' + blank(url) + '>Read more ' + ARROW + '</a>' : '') + '</div></article>';
+  }
+  function sortAch(rows) { return rows.slice().sort(function (a, b) { return (String(b.date || b.year)).localeCompare(String(a.date || a.year)); }); }
+  function renderAchievements(rows) {
+    document.querySelectorAll('[data-render="achievements"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit');
+      if (limit) { // teaser: newest published only
+        var top = sortAch(fresh(rows)).slice(0, limit);
+        box.innerHTML = top.map(achievementCard).join(''); hideWrap(box, !top.length); return;
+      }
+      var items = sortAch(listed(rows));
+      if (!items.length) { box.innerHTML = emptyMsg('Achievements are added here as the Sports Office confirms them.'); return; }
+      var f = { sport: param('sport'), year: param('year'), level: '' }, q = param('q');
+      var years = uniq(items, 'year').sort().reverse(), sports = uniq(items, 'sport').sort(), levels = uniq(items, 'level');
+      box.innerHTML = '<div class="toolbar">' + filterSelect('sport', 'Sport', sports, f.sport) + filterSelect('year', 'Year', years, f.year) + filterSelect('level', 'Level', levels, '') +
+        '<label class="search-field"><span class="visually-hidden">Search achievements</span><input type="search" placeholder="Search achievements" value="' + esc(q) + '" data-q></label></div>' +
+        '<p class="result-count" aria-live="polite" data-count></p><div class="ach-grid" data-list></div>';
+      var out = box.querySelector('[data-list]'), cnt = box.querySelector('[data-count]');
+      function draw() {
+        var ws = words(q), shown = items.filter(function (a) {
+          var hay = [a.title, a.winner, a.competition, a.description, a.sport, a.year].join(' ').toLowerCase();
+          return (!f.sport || a.sport === f.sport) && (!f.year || a.year === f.year) && (!f.level || a.level === f.level) && ws.every(function (w) { return hay.indexOf(w) > -1; });
+        });
+        out.innerHTML = shown.length ? shown.map(achievementCard).join('') : emptyMsg('No achievements match these filters.');
+        cnt.textContent = shown.length + (shown.length === 1 ? ' achievement' : ' achievements');
+      }
+      box.querySelectorAll('[data-f]').forEach(function (s) { s.onchange = function () { f[s.getAttribute('data-f')] = s.value; draw(); }; });
+      box.querySelector('[data-q]').oninput = function (ev) { q = ev.target.value; draw(); };
+      draw();
+    });
+  }
+
+  /* ---------- people (leadership, coordinators, coaches, athletes) ---------- */
+  function personCard(p) {
+    var img = imgUrl(p.photo);
+    return '<article class="person-card">' + (img ? '<div class="avatar"><img src="' + esc(img) + '" alt="' + esc(p.name) + '" loading="lazy"></div>' : '<div class="avatar initials" aria-hidden="true">' + esc(initials(p.name)) + '</div>') +
+      '<div><h3>' + esc(p.name) + '</h3>' + (p.role ? '<p class="role">' + esc(p.role) + '</p>' : '') + (p.sport ? '<span class="pill">' + esc(p.sport) + '</span>' : '') +
+      (p.bio ? '<p class="bio">' + esc(p.bio) + '</p>' : '') + '</div></article>';
+  }
+  function renderPeople(rows) {
+    document.querySelectorAll('[data-render="people"]').forEach(function (box) {
+      var groups = (box.getAttribute('data-group') || '').split(','), sport = box.getAttribute('data-sport');
+      var items = listed(rows).filter(function (p) { return groups.indexOf(String(p.group || '').trim().toLowerCase()) > -1 && (!sport || sameSport(p.sport, { slug: sport, name: sport })); })
+        .sort(function (a, b) { return (+a.order || 999) - (+b.order || 999) || a.name.localeCompare(b.name); });
+      box.innerHTML = items.length ? items.map(personCard).join('') : pendingNote(box.getAttribute('data-empty') || 'Profiles are being prepared by the Sports Office.');
+      box.classList.toggle('is-empty', !items.length);
+    });
+  }
+
+  /* ---------- teams ---------- */
+  function teamCard(t, sportName) {
+    var img = imgUrl(t.photo), facts = [];
+    if (t.gender) facts.push('<li><b>Category</b>' + esc(t.gender) + '</li>');
+    if (t.captain) facts.push('<li><b>Captain</b>' + esc(t.captain) + '</li>');
+    if (t.coach) facts.push('<li><b>Coach</b>' + esc(t.coach) + '</li>');
+    return '<article class="team-card">' + (img ? '<div class="media"><img src="' + esc(img) + '" alt="' + esc(t.name) + '" loading="lazy"></div>' : '') +
+      '<div class="team-body">' + (sportName ? '<span class="pill">' + esc(sportName) + '</span>' : '') + '<h3>' + esc(t.name) + '</h3>' +
+      (facts.length ? '<ul class="facts">' + facts.join('') + '</ul>' : '') + (t.description ? '<p>' + esc(t.description) + '</p>' : '') +
+      (t.achievements ? '<ul class="ticks">' + list(t.achievements).map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>' : '') + '</div></article>';
+  }
+  function renderTeams(rows, sports) {
+    document.querySelectorAll('[data-render="teams"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit'), items = limit ? fresh(rows) : listed(rows);
+      var nameOf = function (v) { var s = sports.filter(function (sp) { return sameSport(v, sp); })[0]; return s ? s.name : v; };
+      if (limit) { box.innerHTML = items.slice(0, limit).map(function (t) { return teamCard(t, nameOf(t.sport)); }).join(''); hideWrap(box, !items.length); return; }
+      if (!items.length) { box.innerHTML = pendingNote('Official university team profiles (squads, captains and coaches) are being prepared by the Sports Office and will appear here once approved.'); return; }
+      var names = uniq(items.map(function (t) { return { s: nameOf(t.sport) }; }), 's').sort(), chosen = param('sport') ? nameOf(param('sport')) : '';
+      box.innerHTML = '<div class="toolbar">' + filterSelect('sport', 'Sport', names, chosen) + '</div><div class="team-grid" data-list></div>';
+      var out = box.querySelector('[data-list]');
+      function draw() { out.innerHTML = items.filter(function (t) { return !chosen || nameOf(t.sport) === chosen; }).map(function (t) { return teamCard(t, nameOf(t.sport)); }).join(''); }
+      var sel = box.querySelector('[data-f]'); if (sel) sel.onchange = function () { chosen = sel.value; draw(); };
+      draw();
+    });
+  }
+
+  /* ---------- facilities ---------- */
+  function facilityCard(f, full) {
+    var img = imgUrl(f.photo), map = safeUrl(f.map_link), feats = list(f.features), rules = list(f.guidelines);
+    return '<article class="facility-card" id="' + esc(f.slug || slugify(f.name)) + '">' +
+      (img ? '<div class="media"><img src="' + esc(img) + '" alt="' + esc(f.name) + '" loading="lazy"></div>' : '<div class="media ph" role="img" aria-label="' + esc(f.name) + ' (photo coming soon)"><span class="ph-icon">' + icon('camera') + '</span></div>') +
+      '<div class="facility-body">' + (f.type ? '<span class="pill">' + esc(f.type) + '</span>' : '') + '<h3>' + esc(f.name) + '</h3>' + (f.description ? '<p>' + esc(f.description) + '</p>' : '') +
+      (f.location ? '<p class="loc">' + icon('pin') + '<span>' + esc(f.location) + (map ? ' · <a href="' + esc(map) + '" target="_blank" rel="noopener">Open in Maps</a>' : '') + '</span></p>' : '') +
+      (f.sports ? '<p class="sports-line"><b>Sports:</b> ' + esc(list(f.sports.replace(/,/g, ';')).join(', ')) + '</p>' : '') +
+      (full && feats.length ? '<ul class="ticks">' + feats.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+      (full && rules.length ? '<details class="rules"><summary>Facility guidelines</summary><ul>' + rules.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>' : '') +
+      (full && !feats.length && !rules.length ? '<p class="awaiting">Venue details, photos and usage guidelines: awaiting confirmation from the Sports Office.</p>' : '') +
+      (!full ? '<a class="link-arrow" href="facilities.html#' + esc(f.slug || slugify(f.name)) + '">View facility ' + ARROW + '</a>' : '') + '</div></article>';
+  }
+  function renderFacilities(rows) {
+    document.querySelectorAll('[data-render="facilities"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit'), items = limit ? fresh(rows).slice(0, limit) : listed(rows);
+      box.innerHTML = items.length ? items.map(function (f) { return facilityCard(f, !limit); }).join('') : pendingNote('Facility information is being prepared by the Sports Office.');
+      if (limit) { hideWrap(box, !items.length); box.classList.toggle('full', items.length === 1); }
+      if (!limit && location.hash) { var el = document.getElementById(location.hash.slice(1)); if (el) el.scrollIntoView(); }
+    });
+  }
+
+  /* ---------- gallery ---------- */
+  function galleryItem(g, i) {
+    var yt = youtubeId(g.url), url = safeUrl(g.url), thumb = imgUrl(g.thumbnail) || (yt ? 'https://img.youtube.com/vi/' + yt + '/hqdefault.jpg' : (g.type === 'video' ? '' : imgUrl(g.url)));
+    var cap = [g.event, g.season && g.season.replace('-', '–')].filter(Boolean).join(' · ');
+    var inner = (thumb ? '<img src="' + esc(thumb) + '" alt="' + esc(g.title || g.caption || 'Sports Sphere') + '" loading="lazy">' : '<span class="ph-icon">' + icon('camera') + '</span>') +
+      (g.type === 'video' || yt ? '<span class="play" aria-hidden="true"></span>' : '') + '<span class="g-cap"><b>' + esc(g.title) + '</b>' + (cap ? '<small>' + esc(cap) + '</small>' : '') + '</span>';
+    if (g.type === 'video' || yt || !thumb) return url ? '<a class="g-item" href="' + esc(url) + '" target="_blank" rel="noopener">' + inner + '</a>' : '';
+    return '<button type="button" class="g-item" data-i="' + i + '">' + inner + '</button>';
+  }
+  function renderGallery(rows) {
+    document.querySelectorAll('[data-render="gallery"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit'), items = (limit ? fresh(rows) : listed(rows)).filter(function (g) { return safeUrl(g.url); })
+        .sort(function (a, b) { return String(b.date || b.season).localeCompare(String(a.date || a.season)); });
+      var lockSport = box.getAttribute('data-sport'), lockEvent = box.getAttribute('data-event');
+      if (lockSport) items = items.filter(function (g) { return sameSport(g.sport, { slug: lockSport, name: lockSport }); });
+      if (lockEvent) items = items.filter(function (g) { return slugify(g.event) === slugify(lockEvent); });
+      if (limit || lockSport || lockEvent) {
+        var few = items.slice(0, limit || 8);
+        box.innerHTML = '<div class="g-grid">' + few.map(galleryItem).join('') + '</div>'; hideWrap(box, !few.length); bindLightbox(box, few); return;
+      }
+      if (!items.length) { box.innerHTML = emptyMsg('Photos and videos from our events are coming soon. Follow @sportssphere__mitwpu on Instagram for match-day moments.'); return; }
+      var f = { sport: param('sport'), event: param('event'), season: param('season') };
+      box.innerHTML = '<div class="toolbar">' + filterSelect('sport', 'Sport', uniq(items, 'sport').sort(), f.sport) + filterSelect('event', 'Event', uniq(items, 'event').sort(), f.event) +
+        filterSelect('season', 'Academic year', uniq(items, 'season').sort().reverse(), f.season) + '</div><p class="result-count" aria-live="polite" data-count></p><div class="g-grid" data-list></div>';
+      var out = box.querySelector('[data-list]'), cnt = box.querySelector('[data-count]');
+      function draw() {
+        var shown = items.filter(function (g) { return (!f.sport || g.sport === f.sport) && (!f.event || g.event === f.event) && (!f.season || g.season === f.season); });
+        out.innerHTML = shown.length ? shown.map(galleryItem).join('') : emptyMsg('Nothing matches these filters yet.');
+        cnt.textContent = shown.length + (shown.length === 1 ? ' item' : ' items'); bindLightbox(out, shown);
+      }
+      box.querySelectorAll('[data-f]').forEach(function (s) { s.onchange = function () { f[s.getAttribute('data-f')] = s.value; draw(); }; });
+      draw();
+    });
+  }
+  function bindLightbox(scope, items) {
+    scope.onclick = function (ev) {
+      var b = ev.target.closest('button.g-item'); if (!b) return;
+      var g = items[+b.getAttribute('data-i')], dlg = document.getElementById('lightbox');
+      if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'lightbox'; dlg.className = 'lightbox'; document.body.appendChild(dlg);
+        dlg.addEventListener('click', function (e) { if (e.target === dlg || e.target.closest('[data-close]')) dlg.close(); }); }
+      dlg.innerHTML = '<button type="button" class="lb-close" data-close aria-label="Close">×</button><figure><img src="' + esc(imgUrl(g.url)) + '" alt="' + esc(g.title || g.caption || '') + '">' +
+        '<figcaption><b>' + esc(g.title) + '</b>' + (g.caption ? ' ' + esc(g.caption) : '') + '</figcaption></figure>';
+      if (dlg.showModal) dlg.showModal(); else window.open(imgUrl(g.url), '_blank');
+    };
+  }
+
+  /* ---------- sports grid (only re-drawn from a Google Sheet; the built page already has the CSV version) ---------- */
+  function sportCard(sp, i) {
+    var cat = [sp.category, yes(sp.women) ? 'women' : ''].filter(Boolean).join(' ');
+    return '<a class="sport-card" href="sport.html?s=' + esc(sp.slug) + '" data-cat="' + esc(cat) + '" style="--c:' + ['#F6C343', '#F08A2E', '#D83B3B', '#2F80C9', '#6DB33F'][i % 5] + '">' +
+      '<span class="tag">' + esc(sp.gender) + '</span><div class="icon">' + icon(sp.icon || sp.slug) + '</div><div><h3>' + esc(sp.name) + '</h3><p>' + esc(sp.summary) + '</p></div></a>';
+  }
+  function renderSportsGrid(sports) {
+    document.querySelectorAll('[data-render="sports-grid"]').forEach(function (box) {
+      var limit = +box.getAttribute('data-limit'); box.innerHTML = sports.slice(0, limit || 99).map(sportCard).join('');
+    });
+  }
+
+  /* ---------- sport detail page: sport.html?s=football ---------- */
+  function renderSportDetail(d) {
+    var box = document.querySelector('[data-render="sport-detail"]'); if (!box) return;
+    var key = slugify(param('s')), sp = d.sports.filter(function (x) { return x.slug === key || slugify(x.name) === key; })[0];
+    if (!sp) { box.innerHTML = notFound('Sport not found', 'This sport isn\'t on our list (yet).', 'sports.html', 'All sports'); return; }
+    setTitle(sp.name);
+    var c = '#F08A2E';
+    var teams = listed(d.teams).filter(function (t) { return sameSport(t.sport, sp); });
+    var coaches = listed(d.people).filter(function (p) { return /coach/i.test(p.group) && sameSport(p.sport, sp); });
+    var ach = sortAch(listed(d.achievements).filter(function (a) { return sameSport(a.sport, sp); }));
+    var fac = listed(d.facilities).filter(function (f) { return (sp.venue && slugify(sp.venue) === f.slug) || list(String(f.sports).replace(/,/g, ';')).some(function (v) { return sameSport(v, sp); }); });
+    var evs = d.events.filter(function (e) { return sameSport(e.sport, sp) || e.title.toLowerCase().indexOf(sp.name.toLowerCase()) > -1; });
+    var upcoming = evs.filter(function (e) { return status(e) !== 'past'; }), trials = d.events.filter(function (e) { return /trial/i.test(e.category + ' ' + e.title) && status(e) !== 'past'; })[0];
+    box.innerHTML = '<section class="page-hero sport-hero" style="--c:' + c + '"><div class="container">' + crumbs([['Sports', 'sports.html'], [sp.name]]) +
+      '<div class="sport-hero-grid"><div><span class="eyebrow">' + esc({ team: 'Team sport', individual: 'Individual sport', mind: 'Mind sport' }[sp.category] || 'Sport') + ' · ' + esc(sp.gender) + '</span>' +
+      '<h1 class="h1">' + esc(sp.name) + '</h1><p class="lead">' + esc(sp.summary) + '</p></div><div class="sport-hero-icon" aria-hidden="true">' + icon(sp.icon || sp.slug) + '</div></div></div></section>' +
+      '<section class="section"><div class="container split top"><div>' + sectionHead('About', 'The<br><span class="grad">game</span>') +
+      (sp.about ? '<div class="prose mt-2"><p>' + esc(sp.about) + '</p></div>' : pendingNote('A full description of ' + esc(sp.name) + ' at MIT-WPU is being prepared by the Sports Office.')) + '</div>' +
+      '<div>' + sectionHead('Get in the game', 'Training &amp;<br><span class="grad">trials</span>') +
+      (sp.training ? '<div class="prose mt-2"><p>' + esc(sp.training) + '</p></div>' : pendingNote('Training timings and coaching details for ' + esc(sp.name) + ' are awaiting confirmation.')) +
+      '<p class="mt-2">University teams are picked at the selection trials at the start of each season.' + (trials ? ' Next trials: <a href="event.html?e=' + esc(trials.slug) + '"><b>' + esc(range(trials).long) + '</b></a>.' : '') + '</p>' +
+      '<a class="btn btn-primary mt-2" href="events.html#calendar">See the calendar ' + ARROW + '</a></div></div></section>' +
+      '<section class="section surface"><div class="container">' + sectionHead('University teams', 'Our<br><span class="grad">squads</span>') +
+      (teams.length ? '<div class="team-grid">' + teams.map(function (t) { return teamCard(t, ''); }).join('') + '</div>' : pendingNote('Team profiles for ' + esc(sp.name) + ' will appear here once approved by the Sports Office.')) +
+      (coaches.length ? '<h3 class="h3 mt-3">Coaches</h3><div class="people-grid mt-2">' + coaches.map(personCard).join('') + '</div>' : '') + '</div></section>' +
+      '<section class="section"><div class="container">' + sectionHead('Where we play', 'Venue') +
+      (fac.length ? '<div class="facility-grid">' + fac.map(function (f) { return facilityCard(f, false); }).join('') + '</div>' : pendingNote('The venue for ' + esc(sp.name) + ' is awaiting confirmation. See <a href="facilities.html">all facilities</a>.')) + '</div></section>' +
+      (ach.length ? '<section class="section surface"><div class="container">' + sectionHead('Achievements', 'Hall of<br><span class="grad-champ">fame</span>') + '<div class="ach-grid">' + ach.slice(0, 6).map(achievementCard).join('') + '</div>' +
+        '<a class="link-arrow mt-3" href="achievements.html?sport=' + encodeURIComponent(ach[0].sport) + '">All ' + esc(sp.name) + ' achievements ' + ARROW + '</a></div></section>' : '') +
+      '<section class="section"><div class="container">' + sectionHead('Events', esc(sp.name) + '<br><span class="grad">on the calendar</span>') +
+      (evs.length ? '<div class="event-list">' + (upcoming.length ? upcoming : evs.slice(-3)).map(function (e) { return eventRow(e, false); }).join('') + '</div>' : emptyMsg('No ' + esc(sp.name) + ' events on the calendar yet.')) + '</div></section>' +
+      '<section class="section surface" data-hide-empty hidden><div class="container">' + sectionHead('Gallery', 'In<br><span class="grad">action</span>') + '<div data-render-local="gallery" data-sport="' + esc(sp.slug) + '"></div></div></section>';
+    var g = box.querySelector('[data-render-local="gallery"]'); g.setAttribute('data-render', 'gallery'); renderGallery(d.gallery);
+  }
+  function notFound(title, text, href, label) {
+    return '<section class="page-hero"><div class="container"><h1 class="h1">' + esc(title) + '</h1><p class="lead">' + esc(text) + '</p><a class="btn btn-primary mt-3" href="' + href + '">' + esc(label) + ' ' + ARROW + '</a></div></section>';
+  }
+
+  /* ---------- event detail page: event.html?e=hoop-it-up-2026-08-28 ---------- */
+  function renderEventDetail(d) {
+    var box = document.querySelector('[data-render="event-detail"]'); if (!box) return;
+    var key = param('e'), e = d.events.filter(function (x) { return x.slug === key; })[0];
+    if (!e) { box.innerHTML = notFound('Event not found', 'This event may have been renamed or moved. The calendar has every event.', 'events.html#calendar', 'Event calendar'); return; }
+    setTitle(e.title);
+    var st = status(e), r = range(e), sp = d.sports.filter(function (x) { return sameSport(e.sport, x); })[0];
+    var results = listed(d.results).filter(function (x) { return slugify(x.event) === slugify(e.title) && (!x.season || x.season === e.season); });
+    var more = d.events.filter(function (x) { return x !== e && x.season === e.season && status(x) !== 'past'; }).slice(0, 3);
+    var btns = '';
+    if (st !== 'past' && e.register) btns += '<a class="btn btn-primary" href="' + esc(e.register) + '"' + blank(e.register) + '>Register ' + ARROW + '</a>';
+    if (e.details && !/^events\.html/.test(e.details)) btns += '<a class="btn btn-ghost" href="' + esc(e.details) + '"' + blank(e.details) + '>More details</a>';
+    if (/^events\.html#/.test(e.details)) btns += '<a class="btn btn-ghost" href="' + esc(e.details) + '">About ' + esc(e.title) + '</a>';
+    var facts = [['Dates', r.long], ['Status', st === 'live' ? 'Happening now' : st === 'past' ? 'Completed' : 'Upcoming'], ['Season', e.season.replace('-', '–')]];
+    if (e.category) facts.push(['Category', e.category]);
+    facts.push(['Venue', e.venue || 'To be announced']);
+    box.innerHTML = '<section class="page-hero event-hero" style="--c:' + e.colour + '"><div class="container">' + crumbs([['Events', 'events.html'], [e.title]]) +
+      '<div class="event-hero-grid"><div>' + statusPill(e) + '<h1 class="h1">' + esc(e.title) + '</h1><p class="lead">' + esc(e.description) + '</p>' +
+      (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow @sportssphere__mitwpu for the announcement.</p>' : '')) + '</div>' +
+      (e.image ? '<div class="event-hero-img"><img src="' + esc(imgUrl(e.image)) + '" alt="' + esc(e.title) + '"></div>' : '<div class="event-date big"><strong>' + esc(r.day) + '</strong><span>' + esc(r.month) + '</span></div>') +
+      '</div></div></section>' +
+      '<section class="section"><div class="container split top"><div>' + sectionHead('About the event', 'Event<br><span class="grad">details</span>') +
+      (e.about ? '<div class="prose mt-2"><p>' + esc(e.about) + '</p></div>' : pendingNote(st === 'past' ? 'A write-up of this event will be added by the Sports Office.' : 'The full schedule, format and venue will be shared by the Sports Office closer to the date.')) + '</div>' +
+      '<dl class="fact-list">' + facts.map(function (f) { return '<div><dt>' + esc(f[0]) + '</dt><dd>' + esc(f[1]) + '</dd></div>'; }).join('') +
+      (sp ? '<div><dt>Sport</dt><dd><a href="sport.html?s=' + esc(sp.slug) + '">' + esc(sp.name) + '</a></dd></div>' : '') + '</dl></div></section>' +
+      '<section class="section surface"><div class="container">' + sectionHead('Results', 'Winners') +
+      (results.length ? '<div class="results"><article class="result-card"><header><span>' + esc(e.season.replace('-', '–')) + '</span><h3>' + esc(e.title) + '</h3></header><ul>' +
+        results.map(function (x) { return '<li><b>' + esc(x.sport || 'Overall') + '</b><span class="gold">' + esc(x.winner) + '</span>' + (x.runner_up ? '<span class="silver">' + esc(x.runner_up) + '</span>' : '') + (x.notes ? '<em>' + esc(x.notes) + '</em>' : '') + '</li>'; }).join('') +
+        '</ul></article></div>' : emptyMsg(st === 'past' ? 'Results for this event haven\'t been posted yet.' : 'Results will be posted here after the event.')) + '</div></section>' +
+      '<section class="section" data-hide-empty hidden><div class="container">' + sectionHead('Gallery', 'Photos &amp;<br><span class="grad">videos</span>') + '<div data-render-local="gallery" data-event="' + esc(e.title) + '"></div></div></section>' +
+      (more.length ? '<section class="section surface"><div class="container">' + sectionHead('Also this season', 'Coming<br><span class="grad">up</span>') + '<div class="event-list">' + more.map(function (x) { return eventRow(x, false); }).join('') + '</div></div></section>' : '');
+    var g = box.querySelector('[data-render-local="gallery"]'); g.setAttribute('data-render', 'gallery'); renderGallery(d.gallery);
+  }
+
+  /* ---------- site search: search.html?q= ---------- */
+  var PAGES = [
+    ['About Sports Sphere', 'about.html', 'vision mission objectives responsibilities leadership history milestones department'],
+    ['Sports', 'sports.html', 'sports list trials team individual'], ['Events and calendar', 'events.html', 'calendar season schedule register'],
+    ['Achievements', 'achievements.html', 'medals awards honours results'], ['Teams and coaches', 'teams.html', 'squads athletes coaches captains'],
+    ['Facilities', 'facilities.html', 'venues infrastructure dronacharya complex grounds courts'], ['News and notices', 'news.html', 'notices trials updates announcements'],
+    ['Gallery', 'gallery.html', 'photos videos pictures'], ['Partner with us', 'partner.html', 'sponsor sponsorship packages brands'],
+    ['Join Sports Sphere', 'join.html', 'volunteer join team apply'], ['Contact', 'contact.html', 'email address location instagram']
+  ];
+  function renderSearch(d) {
+    var box = document.querySelector('[data-render="search"]'); if (!box) return;
+    var idx = [];
+    PAGES.forEach(function (p) { idx.push({ type: 'Page', title: p[0], text: p[2], url: p[1] }); });
+    d.sports.forEach(function (s) { idx.push({ type: 'Sport', title: s.name, text: s.summary + ' ' + s.about, url: 'sport.html?s=' + s.slug }); });
+    d.events.forEach(function (e) { idx.push({ type: 'Event', title: e.title, text: e.description + ' ' + e.category + ' ' + e.season + ' ' + range(e).long, url: 'event.html?e=' + e.slug, sub: range(e).long }); });
+    listed(d.news).forEach(function (n) { idx.push({ type: 'News', title: n.title, text: n.summary + ' ' + n.tag, url: safeUrl(n.link) || 'news.html', sub: n.date }); });
+    listed(d.achievements).forEach(function (a) { idx.push({ type: 'Achievement', title: a.title, text: [a.winner, a.competition, a.description, a.sport, a.year].join(' '), url: 'achievements.html?q=' + encodeURIComponent(a.title), sub: a.year }); });
+    listed(d.facilities).forEach(function (f) { idx.push({ type: 'Facility', title: f.name, text: f.description + ' ' + f.sports + ' ' + f.location, url: 'facilities.html#' + (f.slug || slugify(f.name)) }); });
+    listed(d.people).forEach(function (p) { idx.push({ type: 'People', title: p.name, text: p.role + ' ' + p.sport + ' ' + p.bio, url: /leader/i.test(p.group) ? 'about.html#people' : 'teams.html', sub: p.role }); });
+    listed(d.teams).forEach(function (t) { idx.push({ type: 'Team', title: t.name, text: [t.sport, t.captain, t.coach, t.description].join(' '), url: 'teams.html?sport=' + encodeURIComponent(t.sport) }); });
+    var input = box.querySelector('input'), out = box.querySelector('[data-results]');
+    function draw() {
+      var q = input.value.trim(), ws = words(q);
+      try { history.replaceState(null, '', q ? '?q=' + encodeURIComponent(q) : location.pathname); } catch (e) { }
+      if (!ws.length) { out.innerHTML = ''; return; }
+      var hits = idx.filter(function (x) { var hay = (x.title + ' ' + x.text + ' ' + x.type).toLowerCase(); return ws.every(function (w) { return hay.indexOf(w) > -1; }); })
+        .sort(function (a, b) { var t = function (x) { return ws.every(function (w) { return x.title.toLowerCase().indexOf(w) > -1; }) ? 0 : 1; }; return t(a) - t(b); });
+      out.innerHTML = '<p class="result-count" aria-live="polite">' + hits.length + (hits.length === 1 ? ' result' : ' results') + ' for “' + esc(q) + '”</p>' +
+        (hits.length ? '<ul class="search-results">' + hits.slice(0, 60).map(function (x) {
+          return '<li><a href="' + esc(x.url) + '"' + blank(x.url) + '><span class="pill">' + esc(x.type) + '</span><b>' + esc(x.title) + '</b>' + (x.sub ? '<small>' + esc(x.sub) + '</small>' : '') + '</a></li>';
+        }).join('') + '</ul>' : emptyMsg('Nothing found. Try another word, or browse the <a href="events.html">calendar</a> and <a href="sports.html">sports</a>.'));
+    }
+    input.value = param('q'); input.oninput = draw; draw();
   }
 
   /* ---------- registration portal ---------- */
@@ -276,14 +632,30 @@
   }
 
   /* ---------- go ---------- */
-  Promise.all(['events', 'stats', 'sponsors', 'news', 'results', 'settings'].map(load)).then(function (d) {
-    var settings = {}; d[5].forEach(function (r) { if (r.key) settings[r.key.trim()] = r.value; });
+  /* Which tables does this page need? (announcement bar, dates and forms need events + settings on every page) */
+  var NEED = { calendar: [], next: [], spotlight: [], stats: ['stats'], sponsors: ['sponsors'], news: ['news'], 'news-page': ['news'], results: ['results'],
+    achievements: ['achievements'], people: ['people'], teams: ['teams', 'sports'], facilities: ['facilities'], gallery: ['gallery'], 'sports-grid': ['sports'],
+    'sport-detail': ['sports', 'teams', 'people', 'achievements', 'facilities', 'gallery', 'results'], 'event-detail': ['sports', 'results', 'gallery'],
+    search: ['sports', 'news', 'achievements', 'facilities', 'people', 'teams'] };
+  var tables = ['events', 'settings'];
+  document.querySelectorAll('[data-render]').forEach(function (el) { (NEED[el.getAttribute('data-render')] || []).forEach(function (t) { if (tables.indexOf(t) < 0) tables.push(t); }); });
+  if (document.querySelector('[data-render="calendar"],[data-render="event-detail"]') && tables.indexOf('results') < 0) tables.push('results');
+
+  Promise.all(tables.map(load)).then(function (res) {
+    var d = {}; tables.forEach(function (t, i) { d[t] = res[i]; });
+    ['stats', 'sponsors', 'news', 'results', 'sports', 'people', 'achievements', 'facilities', 'gallery', 'teams'].forEach(function (t) { d[t] = d[t] || []; });
+    var settings = {}; d.settings.forEach(function (r) { if (r.key) settings[r.key.trim()] = r.value; });
     var portal = portalBase(settings.registration_portal);
-    var events = d[0].map(function (r) {
+    var withResults = {}; listed(d.results).forEach(function (r) { withResults[slugify(r.event) + '|' + (r.season || '')] = 1; withResults[slugify(r.event) + '|'] = 1; });
+    var events = listed(d.events).map(function (r) {
       var s = parseDate(r.start); if (!s || !r.title) return null;
-      return { season: r.season || String(s.getFullYear()), title: r.title, start: s, end: parseDate(r.end) || s, category: r.category, description: r.description,
-               flagship: yes(r.flagship), colour: colour(r.colour), register: registerLink(r.register_link, portal), details: safeUrl(r.details_link), image: safeUrl(r.image) };
+      var season = r.season || String(s.getFullYear());
+      return { season: season, title: r.title, start: s, end: parseDate(r.end) || s, category: r.category, description: r.description, about: r.about, sport: r.sport, venue: r.venue,
+               flagship: yes(r.flagship), colour: colour(r.colour), register: registerLink(r.register_link, portal), details: safeUrl(r.details_link), image: safeUrl(r.image),
+               slug: slugify(r.title) + '-' + r.start.trim().slice(0, 10).replace(/[^\d-]/g, ''), hasResults: !!(withResults[slugify(r.title) + '|' + season] || withResults[slugify(r.title) + '|']) };
     }).filter(Boolean).sort(function (a, b) { return a.start - b.start; });
+    var sports = listed(d.sports).filter(function (s) { return s.name; }).map(function (s) { s.slug = slugify(s.slug || s.name); return s; });
+    d.events = events; d.sports = sports;
 
     var cur = currentSeason(events);
     if (cur) document.querySelectorAll('[data-season-text]').forEach(function (el) { el.textContent = cur.replace('-', '–'); });
@@ -292,9 +664,18 @@
     renderNext(events);
     renderCalendar(events);
     renderDates(events);
-    renderResults(d[4], events);
-    renderNews(d[3]);
-    if (CFG.sheetId) { renderStats(d[1]); renderSponsors(d[2]); } // otherwise the page already shows the same local data
+    renderResults(listed(d.results), events);
+    renderNews(fresh(d.news));
+    renderNewsPage(d.news);
+    renderAchievements(d.achievements);
+    renderPeople(d.people);
+    renderTeams(d.teams, sports);
+    renderFacilities(d.facilities);
+    renderGallery(d.gallery);
+    renderSportDetail(d);
+    renderEventDetail(d);
+    renderSearch(d);
+    if (CFG.sheetId) { renderStats(fresh(d.stats)); renderSponsors(fresh(d.sponsors)); renderSportsGrid(fresh(sports)); } // otherwise the page already shows the same local data
     applySettings(settings);
     applyPortal(portal);
     document.documentElement.classList.add('content-ready');

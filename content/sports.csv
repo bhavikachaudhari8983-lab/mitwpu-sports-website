@@ -1,0 +1,11 @@
+slug,name,category,gender,women,icon,summary,about,training,venue,status
+football,Football,team,M & W,yes,football,"Fast feet, big goals. Men's and women's squads on the turf.",,,,
+cricket,Cricket,team,Men's,no,cricket,"Nets, leagues and the battle for the university XI.",,,,
+basketball,Basketball,team,M & W,yes,basketball,The home of Hoop It Up. Fast breaks and full-court battles.,,,,
+volleyball,Volleyball,team,M & W,yes,volleyball,"Spike, block, dig. High-flying court action.",,,,
+kabaddi,Kabaddi,team,Men's,no,kabaddi,Raw power and quick thinking in India's own contact sport.,,,,
+swimming,Swimming,individual,Individual,yes,swimming,"Stroke technique, endurance and race day in the pool.",,,,
+badminton,Badminton,individual,M & W,yes,badminton,"Lightning rallies on indoor courts, singles and doubles.",,,,
+table-tennis,Table Tennis,individual,M & W,yes,tabletennis,"Reflexes, spin and pure precision.",,,,
+chess,Chess,mind,Team,no,chess,"Team chess, where strategy wins championships.",,,,
+esports,E-Sports,mind,Per event,no,esports,"Competitive gaming, with titles announced per event.",,,,

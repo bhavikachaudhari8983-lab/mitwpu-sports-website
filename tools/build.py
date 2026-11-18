@@ -4,7 +4,7 @@ Edit content here, then run from the project root:
 
     python3 tools/build.py
 
-It rewrites the 7 HTML pages (shared header/footer stay identical).
+It rewrites the HTML pages (shared header/footer stay identical).
 Works on Python 3.8+ with no extra packages.
 
 Content source: Sports Sphere Sponsorship Docket 2026-27 (supplied by the client),
@@ -24,6 +24,20 @@ def read_csv(name):
         return []
     with open(path, newline="", encoding="utf-8-sig") as f:
         return [{k.strip().lower(): (v or "").strip() for k, v in r.items() if k} for r in csv.DictReader(f)]
+
+import re, unicodedata, json
+def state_of(r):
+    v = (r.get("status") or "").strip().lower()
+    return "draft" if v in ("draft", "hidden", "unpublished") else "archived" if v in ("archived", "archive") else "published"
+def listed(rows):   # listing/archive pages: everything except drafts
+    return [r for r in rows if state_of(r) != "draft"]
+def fresh(rows):    # home page and teasers: published only
+    return [r for r in rows if state_of(r) == "published"]
+def slugify(v):     # must match slugify() in assets/js/content.js
+    v = unicodedata.normalize("NFKD", (v or "").lower()).encode("ascii", "ignore").decode().replace("&", " and ")
+    return re.sub(r"[^a-z0-9]+", "-", v).strip("-")
+def event_slug(e):
+    return slugify(e["title"]) + "-" + re.sub(r"[^\d-]", "", (e.get("start") or "").strip()[:10])
 
 def pdate(v):
     v = (v or "").strip()
@@ -45,7 +59,7 @@ def drange(a, b):
             "%d %s – %d %s %d" % (a.day, MONL[a.month - 1], b.day, MONL[b.month - 1], b.year))
 
 EVENTS = []
-for r in read_csv("events"):
+for r in listed(read_csv("events")):
     st = pdate(r.get("start"))
     if not st or not r.get("title"):
         continue
@@ -107,6 +121,8 @@ I = {
     "cap": svg('<path d="M2 9l10-5 10 5-10 5zM6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6"/>', "2"),
     "eye": svg('<path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.2"/>', "2"),
     "target": svg('<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.5"/>', "2"),
+    "search": svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l5 5"/>', "2.2"),
+    "chevron": svg('<path d="M6 9l6 6 6-6"/>', "2.4"),
     "check": svg('<path d="M4.5 12.5l5 5 10-11"/>', "2.8"),
     "ig": svg('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/>', "2"),
     "fb": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 8.5V6.6c0-.9.6-1.1 1-1.1h2.5V1.6L14 1.5C10.2 1.5 9.4 4.3 9.4 6.1v2.4H7v4h2.4V22.5H14V12.5h3.1l.4-4z"/></svg>',
@@ -134,8 +150,13 @@ def ig_url(h):
     return "https://www.instagram.com/" + h + "/"
 
 # --------------------------------------------------------------- layout
-NAV = [("index.html", "Home"), ("about.html", "About"), ("sports.html", "Sports"),
-       ("events.html", "Events"), ("partner.html", "Partner"), ("contact.html", "Contact")]
+# (link, label, sub-pages). Pages listed in the 4th item light up that menu entry too.
+NAV = [("index.html", "Home", [], []),
+       ("about.html", "About", [("about.html", "About Sports Sphere"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities")], []),
+       ("sports.html", "Sports", [], ["sport.html"]),
+       ("events.html", "Events", [("events.html", "Event calendar"), ("achievements.html", "Achievements")], ["event.html"]),
+       ("news.html", "News", [("news.html", "News &amp; notices"), ("gallery.html", "Gallery")], []),
+       ("partner.html", "Partner", [], []), ("contact.html", "Contact", [], [])]
 
 WORDMARK = ('<a href="index.html" class="wordmark" aria-label="Sports Sphere home">'
             '<img class="wm-badge" src="assets/img/logo/sports-sphere-badge.webp" alt="" width="60" height="60">'
@@ -143,12 +164,24 @@ WORDMARK = ('<a href="index.html" class="wordmark" aria-label="Sports Sphere hom
 
 def header(active):
     cur = ' aria-current="page"'
-    links = ''.join('<li><a href="%s"%s>%s</a></li>' % (h, cur if h == active else "", t) for h, t in NAV)
+    out = []
+    for h, t, kids, also in NAV:
+        mine = active == h or active in [k for k, _ in kids] or active in also
+        if not kids:
+            out.append('<li><a href="%s"%s>%s</a></li>' % (h, cur if mine else "", t))
+            continue
+        sid = "sub-" + slugify(t)
+        out.append('<li class="has-sub"><a href="%s"%s>%s</a><button class="sub-toggle" type="button" aria-expanded="false" aria-controls="%s">'
+                   '<span class="visually-hidden">%s menu</span>%s</button><ul class="sub" id="%s">%s</ul></li>'
+                   % (h, cur if mine else "", t, sid, t, I["chevron"], sid,
+                      "".join('<li><a href="%s"%s>%s</a></li>' % (k, cur if k == active else "", kt) for k, kt in kids)))
+    links = "".join(out)
     return ('<a class="skip-link" href="#main">Skip to content</a>\n'
             '<header class="site-header" data-header>\n  <div class="announce" data-render="announcement" hidden></div>\n  <div class="container header-inner">\n'
             '    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu"><span></span><span></span></button>\n'
             '    ' + WORDMARK + '\n'
             '    <nav id="site-nav" class="site-nav" aria-label="Primary"><ul>' + links + '</ul>'
+            '<a class="nav-search" href="search.html" aria-label="Search the site"' + (cur if active == "search.html" else "") + '>' + I["search"] + '<span class="ns-label">Search</span></a>'
             '<a class="btn btn-primary btn-sm" href="join.html"' + (cur if active == "join.html" else "") + '>Join Sports Sphere ' + ARROW + '</a></nav>\n'
             '    <!-- Official MIT-WPU logo: always top-right (Brand Book 2026, p.8), min 60px -->\n'
             '    <a href="https://mitwpu.edu.in" class="brand-logo" target="_blank" rel="noopener" aria-label="MIT World Peace University (opens in new tab)">'
@@ -160,7 +193,7 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '<p class="tagline">Fueling passion. Building champions.</p>'
           '<p>MIT-WPU\'s official sports management &amp; event platform, uniting athletes, institutions and brands through the culture of collegiate sport.</p>'
           '<img class="footer-mit" src="assets/img/logo/mitwpu-logo-white.webp" alt="MIT-WPU" width="74" height="70"></div>\n'
-          '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="events.html">Season calendar</a></li><li><a href="events.html#hoop-it-up">Hoop It Up</a></li><li><a href="events.html#summit">Sports Summit</a></li></ul></div>\n'
+          '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="teams.html">Teams &amp; coaches</a></li><li><a href="facilities.html">Facilities</a></li><li><a href="events.html">Season calendar</a></li><li><a href="achievements.html">Achievements</a></li><li><a href="news.html">News &amp; notices</a></li><li><a href="gallery.html">Gallery</a></li></ul></div>\n'
           '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join Sports Sphere</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
           '      <div><h4>Follow us</h4><ul class="footer-links ig-links">' +
           ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s</a></li>' % (ig_url(h), I["ig"], h) for h, _, _, _ in IG) +
@@ -174,7 +207,13 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '    <div class="footer-bottom"><span>&copy; <span data-year>2026</span> Sports Sphere · MIT World Peace University</span><a href="https://mitwpu.edu.in" target="_blank" rel="noopener">www.mitwpu.edu.in</a></div>\n'
           '  </div>\n</footer>')
 
+SITE_URL = "https://sports-sphere-website.vercel.app/"
+ICONS_JSON = json.dumps({k: v for k, v in I.items() if k not in ("fb", "yt", "li")}, separators=(",", ":"))
+PAGES_BUILT = []
+NOSCRIPT = '<noscript><p class="empty">This section needs JavaScript to load. Please enable it, or follow @sportssphere__mitwpu on Instagram.</p></noscript>'
+
 def page(fname, title, desc, body):
+    PAGES_BUILT.append(fname)
     full = "Sports Sphere · MIT-WPU | Fueling Passion, Building Champions" if fname == "index.html" else title + " | Sports Sphere · MIT-WPU"
     html = ('<!doctype html>\n<html lang="en" class="no-js">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
@@ -186,8 +225,10 @@ def page(fname, title, desc, body):
             '<link rel="apple-touch-icon" href="assets/img/logo/sports-sphere-badge.png">\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
             '<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">\n'
+            '<link rel="canonical" href="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
             '<link rel="stylesheet" href="' + asset("assets/css/style.css") + '">\n</head>\n<body>\n'
             + header(fname) + '\n<main id="main">\n' + body + '\n</main>\n' + FOOTER +
+            '\n<script type="application/json" id="ss-icons">' + ICONS_JSON + '</script>'
             '\n<script src="' + asset("assets/js/config.js") + '" defer></script>\n<script src="' + asset("assets/js/content.js") + '" defer></script>\n<script src="' + asset("assets/js/main.js") + '" defer></script>\n</body>\n</html>\n')
     with open(os.path.join(ROOT, fname), "w") as f:
         f.write(html)
@@ -232,32 +273,24 @@ def cname(c):
 
 def stats_html():
     out = []
-    for i, r in enumerate(read_csv("stats")):
+    for i, r in enumerate(fresh(read_csv("stats"))):
         v, sup = r.get("value", ""), r.get("suffix", "")
         cnt = ' data-count="%s"' % v if v.isdigit() else ""
         out.append('<div class="stat reveal" data-delay="%d" style="--c:%s"><strong%s>%s%s</strong><span>%s</span></div>'
                    % (i % 4, cname(r.get("colour")), cnt, v, ("<sup>%s</sup>" % sup) if sup else "", r.get("label", "")))
     return '<div class="stats" data-render="stats">' + ''.join(out) + '</div>'
 
-# Official sports list. (M) men's, (W) women's.
-SPORTS = [
-    ("football", "Football", "M &amp; W", "team women", "Fast feet, big goals. Men's and women's squads on the turf."),
-    ("cricket", "Cricket", "Men's", "team", "Nets, leagues and the battle for the university XI."),
-    ("basketball", "Basketball", "M &amp; W", "team women", "The home of Hoop It Up. Fast breaks and full-court battles."),
-    ("volleyball", "Volleyball", "M &amp; W", "team women", "Spike, block, dig. High-flying court action."),
-    ("kabaddi", "Kabaddi", "Men's", "team", "Raw power and quick thinking in India's own contact sport."),
-    ("swimming", "Swimming", "Individual", "individual women", "Stroke technique, endurance and race day in the pool."),
-    ("badminton", "Badminton", "M &amp; W", "individual women", "Lightning rallies on indoor courts, singles and doubles."),
-    ("tabletennis", "Table Tennis", "M &amp; W", "individual women", "Reflexes, spin and pure precision."),
-    ("chess", "Chess", "Team", "mind", "Team chess, where strategy wins championships."),
-    ("esports", "E-Sports", "Per event", "mind", "Competitive gaming, with titles announced per event."),
-]
+# Sports list: content/sports.csv (or the Sheet's "sports" tab). Each card opens sport.html?s=<slug>.
+SPORTS = [r for r in fresh(read_csv("sports")) if r.get("name")]
+for r in SPORTS:
+    r["slug"] = slugify(r.get("slug") or r["name"])
 def sport_cards(items, with_cat=False):
     out = []
-    for n, (key, name, tag, cat, blurb) in enumerate(items):
+    for n, r in enumerate(items):
+        cat = " ".join(x for x in (r.get("category", ""), "women" if r.get("women", "").lower() in ("yes", "y", "true", "1") else "") if x)
         c = (' data-cat="' + cat + '"') if with_cat else ""
-        out.append('<article class="sport-card reveal"' + c + ' style="--c:' + RING[n % 5] + '"><span class="tag">' + tag +
-                   '</span><div class="icon">' + I[key] + '</div><div><h3>' + name + '</h3><p>' + blurb + '</p></div></article>')
+        out.append('<a class="sport-card reveal" href="sport.html?s=' + r["slug"] + '"' + c + ' style="--c:' + RING[n % 5] + '"><span class="tag">' + r.get("gender", "").replace("&", "&amp;") +
+                   '</span><div class="icon">' + I.get(r.get("icon") or r["slug"], I["trophy"]) + '</div><div><h3>' + r["name"] + '</h3><p>' + r.get("summary", "") + '</p></div></a>')
     return "\n".join(out)
 
 TAPE_ITEMS = ["Fueling passion", "Hoop It Up", "Sports Summit", "Building champions", "Football", "Cricket", "Basketball",
@@ -347,7 +380,7 @@ def compare_table():
 
 def sponsor_strip():
     out = []
-    for r in read_csv("sponsors"):
+    for r in fresh(read_csv("sponsors")):
         inner = ('<img src="%s" alt="%s" loading="lazy">' % (r["logo"], r["name"])) if r.get("logo") else \
                 '<b>%s</b><span>%s</span>' % (r.get("name", ""), r.get("tagline", ""))
         out.append(('<a class="sponsor" href="%s" target="_blank" rel="noopener">%s</a>' % (r["link"], inner)) if r.get("link")
@@ -368,16 +401,15 @@ def event_rows(events):
     out = []
     for e in events:
         d, mth, _ = drange(e["start_d"], e["end_d"])
-        link = e.get("register_link") or e.get("details_link")
-        btn = ('<a class="btn btn-dark btn-sm" href="%s">%s</a>' % (link, "Register" if e.get("register_link") else "Details")) if link \
-              else '<span class="soon">Registration opens soon</span>'
+        reg = e.get("register_link") if e.get("register_link", "").lower() != "portal" else ""
+        btn = ('<a class="btn btn-dark btn-sm" href="%s">Register</a>' % reg) if reg else '<a class="btn btn-ghost btn-sm" href="event.html?e=%s">Details</a>' % event_slug(e)
         out.append('<article class="event-row" style="--c:%s"><div class="event-date"><strong>%s</strong><span>%s</span></div>'
-                   '<div class="event-info"><h3>%s</h3><p>%s</p></div><span class="pill">%s</span><span class="status"></span>%s</article>'
-                   % (cname(e.get("colour")), d, mth, e["title"], e.get("description", ""), e.get("category", ""), btn))
+                   '<div class="event-info"><h3><a href="event.html?e=%s">%s</a></h3><p>%s</p></div><span class="pill">%s</span><span class="status"></span>%s</article>'
+                   % (cname(e.get("colour")), d, mth, event_slug(e), e["title"], e.get("description", ""), e.get("category", ""), btn))
     return "\n".join(out)
 
 def news_html(limit=3):
-    rows = sorted(read_csv("news"), key=lambda r: pdate(r.get("date")) or datetime.date.min, reverse=True)[:limit]
+    rows = sorted(fresh(read_csv("news")), key=lambda r: pdate(r.get("date")) or datetime.date.min, reverse=True)[:limit]
     out = []
     for r in rows:
         dd = pdate(r.get("date"))
@@ -387,7 +419,7 @@ def news_html(limit=3):
             ('<span class="pill">%s</span>' % r["tag"]) if r.get("tag") else "", ("%d %s %d" % (dd.day, MON[dd.month - 1], dd.year)) if dd else "",
             r.get("title", ""), r.get("summary", ""))
         out.append(('<a class="news-card" href="%s" target="_blank" rel="noopener">%s</a>' % (r["link"], body)) if r.get("link") else '<article class="news-card">%s</article>' % body)
-    return "".join(out), len(read_csv("news"))
+    return "".join(out), len(fresh(read_csv("news")))
 
 def flagship_cards():
     return ('<div class="flagships">'
@@ -403,6 +435,30 @@ def ig_cards():
     return '<div class="ig-grid">' + ''.join(
         '<a class="ig-card reveal" data-delay="%d" href="%s" target="_blank" rel="noopener" style="--c:%s"><span class="fi">%s</span><div><b>@%s</b><h3>%s</h3><p>%s</p></div></a>'
         % (i, ig_url(h), c, I["ig"], h, name, d) for i, (h, name, d, c) in enumerate(IG)) + '</div>'
+
+# About page. Responsibilities follow the department's own season calendar and docket; objectives restate the
+# vision and mission from the Sponsorship Docket 2026-27. Milestones are public, verified facts only (see README).
+RESPONSIBILITIES = [
+    ("trophy", "Run the season's events", "Hoop It Up, the national-level Sports Summit, interdepartmental sports for students and staff, the marathon, World Yoga Day and more.", ORANGE),
+    ("users", "Pick and prepare university teams", "Selection trials at the start of each season and the Athlete Induction Programme for selected athletes.", BLUE),
+    ("target", "Train athletes year-round", "Infrastructure and professional coaching that support athletes through training and competition.", GREEN),
+    ("medal", "Celebrate achievement", "The National Level Sports Award Ceremony and recognition of our athletes' results.", YELLOW),
+    ("handshake", "Build partnerships", "Working with institutions, sponsors and industry to grow university sport.", RED),
+]
+OBJECTIVES = [
+    "Foster competitive excellence among MIT-WPU's athletes.",
+    "Encourage holistic development through sport for every student.",
+    "Deliver professionally managed, inclusive sporting events.",
+    "Strengthen the culture of sport in higher education.",
+    "Build long-term partnerships with institutions and industry.",
+]
+MILESTONES = [
+    ("1983", "A sporting legacy begins", "Sport has been part of campus life since MIT-Pune was founded.", YELLOW),
+    ("2004", "SUMMIT is born", "The first SUMMIT national-level inter-engineering sports meet is held.", ORANGE),
+    ("2025", "Runners-up overall", "Second overall at the Vishwanath Sports Meet 2025.", RED),
+    ("2026", "Dronacharya Sports Complex opens", "Inaugurated on 7 March 2026 by Shri Sanjay Seth, with Anjali Bhagwat and Abhijit Kunte present.", BLUE),
+    ("2026", "Double gold in chess", "Gold in the men's and women's chess events at the Vishwanath Sports Meet 2026.", GREEN),
+]
 
 HONOURS = [  # public MIT-WPU news
     ("2026", "Double gold in chess", "MIT-WPU won gold in both the men's and women's chess events at the Vishwanath Sports Meet 2026.", YELLOW),
@@ -450,12 +506,24 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
         + '<div class="event-list" data-render="next" data-limit="4">' + event_rows([e for e in EVENTS if e["end_d"] >= BUILD_DAY][:4]) + '</div></div></section>\n'
         '<section class="section"><div class="container">' + head("Pick your sport", "Find your<br><span class='grad'>game.</span>",
                                                                    '<div class="reveal"><p class="lead">Ten sports across the Sports Sphere portfolio, with men\'s and women\'s events.</p><a class="link-arrow mt-2" href="sports.html">All sports ' + ARROW + '</a></div>')
-        + '<div class="sports-grid">' + sport_cards(SPORTS[:8]) + '</div></div></section>\n'
+        + '<div class="sports-grid" data-render="sports-grid" data-limit="8">' + sport_cards(SPORTS[:8]) + '</div></div></section>\n'
+        '<section class="section surface" data-hide-empty><div class="container">' + head("Achievements", "Hall of<br><span class='grad-champ'>fame</span>",
+                                                                                      '<a class="link-arrow reveal" href="achievements.html">All achievements ' + ARROW + '</a>')
+        + '<div class="ach-grid" data-render="achievements" data-limit="3">' + NOSCRIPT + '</div></div></section>\n'
+        '<section class="section" data-hide-empty hidden><div class="container">' + head("University teams", "Wearing<br><span class='grad'>the colours</span>",
+                                                                                  '<a class="link-arrow reveal" href="teams.html">All teams ' + ARROW + '</a>')
+        + '<div class="team-grid" data-render="teams" data-limit="3"></div></div></section>\n'
+        '<section class="section cream" data-hide-empty><div class="container">' + head("Facilities", "Where<br><span class='grad'>we play</span>",
+                                                                                     '<a class="link-arrow reveal" href="facilities.html">All facilities ' + ARROW + '</a>')
+        + '<div class="facility-grid" data-render="facilities" data-limit="2">' + NOSCRIPT + '</div></div></section>\n'
         '<section class="section night"><div class="container on-dark">' + head("For brands", "Why partner<br><span class='grad'>with us</span>",
                                                                                  '<div class="reveal"><p class="lead">Put your brand at the heart of passion, performance and purpose.</p><a class="btn btn-primary mt-2" href="partner.html">Sponsorship packages ' + ARROW + '</a></div>')
         + '<div class="why-grid">' + why_cards() + '</div></div></section>\n'
         '<section class="section"><div class="container">' + head("Previous sponsors", "Trusted<br><span class='grad'>by</span>") + sponsor_strip() + '</div></section>\n'
-        '<section class="section" data-news-wrap' + ('' if NEWS_COUNT >= 2 else ' hidden') + '><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>") + '<div class="news-grid" data-render="news" data-limit="3" data-min="2">' + NEWS_HTML + '</div></div></section>\n'
+        '<section class="section" data-news-wrap' + ('' if NEWS_COUNT >= 2 else ' hidden') + '><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>", '<a class="link-arrow reveal" href="news.html">All news ' + ARROW + '</a>') + '<div class="news-grid" data-render="news" data-limit="3" data-min="2">' + NEWS_HTML + '</div></div></section>\n'
+        '<section class="section surface" data-hide-empty hidden><div class="container">' + head("Gallery", "Moments<br><span class='grad'>that matter</span>",
+                                                                                         '<a class="link-arrow reveal" href="gallery.html">Full gallery ' + ARROW + '</a>')
+        + '<div data-render="gallery" data-limit="8"></div></div></section>\n'
         '<section class="section cream"><div class="container">' + head("Follow the action", "Join us on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>\n'
         + cta())
 page("index.html", "Home", "Sports Sphere is MIT-WPU's official sports management and event platform, home of Hoop It Up and the Sports Summit. Fueling passion, building champions.", home)
@@ -470,41 +538,45 @@ about = (page_hero("About", "About us", "We are<br><span class='grad'>Sports Sph
          '<p>Our athletes train year-round with state-of-the-art infrastructure and professional coaching. Today <strong>12 international players</strong> represent India across multiple sports, with <strong>26 international medals</strong> between them.</p></div></div>'
          '<div class="media-wrap reveal" data-delay="1">' + streaks("right") + media("Team photo", "tall slant", "camera", BLUE) + '<div class="stamp"><strong>12</strong><span>International players</span></div></div>'
          '</div></section>'
+         '<section class="section surface"><div class="container split top"><div><span class="eyebrow reveal">What we do</span>'
+         '<h2 class="h2 reveal">The department\'s<br><span class="grad">responsibilities</span></h2>'
+         '<p class="lead mt-2 reveal">Sports Sphere runs sport at MIT-WPU all year: for the university\'s athletes, its students and staff, and the colleges that come to compete.</p></div>'
+         '<ul class="feature-list">' + feature_items(RESPONSIBILITIES) + '</ul></div></section>'
          '<section class="section night"><div class="container on-dark"><div class="vm">'
          '<div class="vm-card reveal" style="--c:' + YELLOW + '"><span class="fi">' + I["eye"] + '</span><span class="eyebrow">Our vision</span><p>To become India\'s leading university sports platform, fostering competitive excellence, encouraging holistic development, and building long-term partnerships with institutions and industry leaders.</p></div>'
          '<div class="vm-card reveal" data-delay="1" style="--c:' + GREEN + '"><span class="fi">' + I["target"] + '</span><span class="eyebrow">Our mission</span><p>To deliver professionally managed sporting events that celebrate talent, promote inclusivity, and strengthen the culture of sport in higher education, through innovation, collaboration and excellence.</p></div>'
-         '</div></div></section>'
+         '</div><div class="objectives reveal"><span class="eyebrow">Our objectives</span><ol>' + "".join('<li>%s</li>' % o for o in OBJECTIVES) + '</ol></div></div></section>'
          '<section class="section"><div class="container">' + head("What drives us", "Three things<br><span class='grad'>we live by</span>") +
          '<div class="values">' + value_cards() + '</div></div></section>'
          '<section class="section surface"><div class="container split top"><div><span class="eyebrow reveal">Our edge</span>'
          '<h2 class="h2 reveal">What makes us<br><span class="grad">different</span></h2><p class="lead mt-2 reveal">A year-round portfolio of professionally managed events designed to inspire athletes, engage communities and create meaningful brand partnerships.</p></div>'
          '<ul class="feature-list">' + feature_items(DIFFERENT) + '</ul></div></section>'
          '<section class="section tight"><div class="container">' + stats_html() + '</div></section>'
-         '<section class="section surface"><div class="container">' + head("Recent glory", "Hall of<br><span class='grad-champ'>fame</span>") +
-         '<div class="honour-grid">' + honour_cards() + '</div></div></section>'
-         '<section class="section cream"><div class="container">' + head("The people", "Leadership", '<p class="lead reveal">Sports Sphere core team profiles are coming soon.</p>') +
-         '<div class="people">'
-         '<div class="person reveal">' + media("Portrait", "", "users", YELLOW) + '<h3>Prof. Dr. Vishwanath D. Karad</h3><p>Founder &amp; Chief Patron, MAEER\'s MIT · President, MIT-WPU</p></div>'
-         '<div class="person reveal" data-delay="1">' + media("Portrait", "", "users", ORANGE) + '<h3>Dr. Rahul V. Karad</h3><p>Executive President, MIT-WPU</p></div>'
-         '<div class="person reveal" data-delay="2">' + media("Portrait", "", "users", BLUE) + '<h3>Dr. Popat Dhanve</h3><p>Director of Sports</p></div>'
-         '<div class="person reveal" data-delay="3">' + media("Portrait", "", "users", GREEN) + '<h3>Mr. Vilas Kathure</h3><p>Department of Sports</p></div>'
-         '</div></div></section>' + cta())
+         '<section class="section"><div class="container">' + head("Our journey", "History &amp;<br><span class='grad'>milestones</span>") +
+         '<ol class="timeline">' + "".join('<li class="reveal" style="--c:%s"><span class="t-year">%s</span><div><h3>%s</h3><p>%s</p></div></li>' % (c, y, t, d) for y, t, d, c in MILESTONES) + '</ol></div></section>'
+         '<section class="section surface"><div class="container">' + head("Recent glory", "Hall of<br><span class='grad-champ'>fame</span>",
+                                                                          '<a class="link-arrow reveal" href="achievements.html">All achievements ' + ARROW + '</a>') +
+         '<div class="ach-grid" data-render="achievements" data-limit="3">' + NOSCRIPT + '</div></div></section>'
+         '<section class="section cream" id="people"><div class="container">' + head("The people", "Leadership &amp;<br><span class='grad'>team</span>") +
+         '<div class="people-grid" data-render="people" data-group="leadership">' + NOSCRIPT + '</div>'
+         '<h3 class="h3 mt-3">Sports Office: coordinators &amp; core team</h3>'
+         '<div class="people-grid mt-2" data-render="people" data-group="coordinator,core team" data-empty="The Sports Office team, its coordinators and the organisational structure will be published here once confirmed by the department."></div>'
+         '<p class="mt-3"><a class="link-arrow" href="teams.html">Coaches and university teams ' + ARROW + '</a></p></div></section>' + cta())
 page("about.html", "About us", "About Sports Sphere, MIT-WPU's official sports management and event platform: our vision, mission, values and track record.", about)
 
 # ================================================================= SPORTS
 sports = (page_hero("Sports", "Sports list", "Find your<br><span class='grad'>game.</span>",
-                    "Ten sports across the Sports Sphere event portfolio, with men's and women's competition. Pick yours.") +
+                    "Ten sports across the Sports Sphere event portfolio, with men's and women's competition. Pick one to see its teams, venue, achievements and events.") +
           '<section class="section"><div class="container">'
           '<div class="filters" data-filter-group="#sports-list" role="group" aria-label="Filter sports">'
           '<button class="filter-btn" data-filter="all" aria-pressed="true">All</button><button class="filter-btn" data-filter="team" aria-pressed="false">Team</button>'
           '<button class="filter-btn" data-filter="individual" aria-pressed="false">Individual</button><button class="filter-btn" data-filter="mind" aria-pressed="false">Mind &amp; e-sports</button>'
           '<button class="filter-btn" data-filter="women" aria-pressed="false">Women\'s events</button></div>'
-          '<h2 class="visually-hidden">All sports</h2><div class="sports-grid" id="sports-list">' + sport_cards(SPORTS, True) + '</div>'
+          '<h2 class="visually-hidden">All sports</h2><div class="sports-grid" id="sports-list" data-render="sports-grid">' + sport_cards(SPORTS, True) + '</div>'
           '<p class="footnote mt-2">M = men\'s, W = women\'s. E-Sports titles are announced per event.</p></div></section>'
           '<section class="section cream" id="venues"><div class="container">' + head("Where we play", "Built for<br><span class='grad'>champions</span>",
                                                                                        '<p class="lead reveal">State-of-the-art sports infrastructure with professional coaching, nurturing athletes through year-round training and competitions.</p>') +
-          '<div class="gallery">' + media("Dronacharya Sports Complex", "g-wide g-tall", "camera", BLUE) + media("Basketball courts", "", "camera", ORANGE) +
-          media("Football ground", "", "camera", GREEN) + media("Swimming pool", "g-wide", "camera", RED) + '</div></div></section>'
+          '<div class="facility-grid" data-render="facilities" data-limit="4">' + NOSCRIPT + '</div><a class="link-arrow mt-3" href="facilities.html">All facilities ' + ARROW + '</a></div></section>'
           '<section class="section" id="join"><div class="container split top"><div><span class="eyebrow reveal">Get in the game</span>'
           '<h2 class="h2 reveal">How to make<br><span class="grad">the team</span></h2><p class="lead mt-2 reveal">Selection trials for the university teams run at the start of every season (usually in August). Check the calendar for the dates and the registration form.</p>'
           '<a class="btn btn-primary mt-3 reveal" href="events.html#calendar">See trial dates ' + ARROW + '</a></div>'
@@ -535,8 +607,9 @@ events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='g
           '<a class="btn btn-ghost" href="partner.html">Sponsor the Summit</a></div></div>'
           '<div class="summit-side">' + streaks("right") + '<span class="big">' + date_of("Sports Summit", "year") + '</span><p>National level · Sports for Peace</p></div></article></div></section>'
           '<section class="section surface" id="calendar"><div class="container">' + head("Planning ahead", "Annual event<br><span class='grad'>calendar</span>",
-                                                                                         '<p class="lead reveal">Every fixture of the season, from trials to World Yoga Day. Past seasons stay here as an archive.</p>') +
+                                                                                         '<p class="lead reveal">Every fixture of the season, from trials to World Yoga Day. Filter by upcoming, happening now or completed; past seasons stay here as an archive.</p>') +
           '<div class="filters" data-render="season-tabs" role="group" aria-label="Choose season"></div>'
+          '<div class="filters status-filters" data-render="status-tabs" role="group" aria-label="Show events"></div>'
           '<div class="event-list" data-render="calendar">' + event_rows([e for e in EVENTS if e["season"] == CURRENT_SEASON]) + '</div></div></section>'
           '<section class="section" id="results" data-results-wrap><div class="container">' + head("Results", "Winners<br><span class='grad-champ'>board</span>", '<p class="lead reveal">Champions of every Sports Sphere event, season after season.</p>') + '<div class="results" data-render="results"><p class="empty">Winners are posted here after every event.</p></div></div></section>'
           '<section class="section surface" id="register"><div class="container split top"><div>'
@@ -647,9 +720,68 @@ join = (page_hero("Join", "Join Sports Sphere", "Be part of<br><span class='grad
         '</div></section>')
 page("join.html", "Join Sports Sphere", "Join the student team behind Sports Sphere at MIT-WPU: event management, media, design, marketing, sponsorship and volunteering.", join)
 
-# Remove pages that no longer exist
-old = os.path.join(ROOT, "achievements.html")
-if os.path.exists(old):
-    os.remove(old)
+# ================================================================= ACHIEVEMENTS
+achievements = (page_hero("Achievements", "Hall of fame", "Built for<br><span class='grad-champ'>glory.</span>",
+                          "Team and individual achievements of MIT-WPU's athletes: competitions, medals, awards and recognitions. Filter by sport and year.") +
+                '<section class="section"><div class="container"><div data-render="achievements">' + NOSCRIPT + '</div>'
+                '<p class="footnote mt-3">Only achievements confirmed by the Sports Office are listed. Results from Sports Sphere\'s own events are on the <a href="events.html#results">winners board</a>.</p></div></section>' + cta())
+page("achievements.html", "Achievements", "Achievements of MIT-WPU athletes and teams: medals, competitions, awards and recognitions, by sport and year.", achievements)
 
-print("Built 7 pages in", ROOT)
+# ================================================================= TEAMS & COACHES
+teams = (page_hero("Teams", "Teams &amp; coaches", "Wearing<br><span class='grad'>the colours.</span>",
+                   "The official teams that represent MIT-WPU, the coaches behind them, and athletes who have represented the university at the highest level.") +
+         '<section class="section"><div class="container">' + head("University teams", "Our<br><span class='grad'>squads</span>") + '<div data-render="teams">' + NOSCRIPT + '</div></div></section>'
+         '<section class="section surface"><div class="container">' + head("Coaches", "The people<br><span class='grad'>behind the wins</span>") +
+         '<div class="people-grid" data-render="people" data-group="coach" data-empty="Coach profiles will be published here once approved by the Sports Office."></div></div></section>'
+         '<section class="section"><div class="container">' + head("Athletes", "Stars on<br><span class='grad-champ'>the world stage</span>") +
+         '<div class="people-grid" data-render="people" data-group="athlete" data-empty="Athlete profiles will be published here with each athlete\'s approval."></div>'
+         '<p class="footnote mt-3">Athlete profiles are published only with the athlete\'s approval. Want to make a team? <a href="sports.html#join">See how selection works</a>.</p></div></section>' + cta())
+page("teams.html", "Teams & coaches", "MIT-WPU's official university sports teams, coaches and athletes.", teams)
+
+# ================================================================= FACILITIES
+facilities = (page_hero("Facilities", "Where we play", "Built for<br><span class='grad'>champions.</span>",
+                        "MIT-WPU's sports infrastructure: venues, locations and guidelines for using them.") +
+              '<section class="section"><div class="container"><div class="facility-grid full" data-render="facilities">' + NOSCRIPT + '</div></div></section>'
+              '<section class="section" style="padding-top:0"><div class="container"><iframe class="map-frame" title="Map: MIT World Peace University, Kothrud, Pune" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=MIT+World+Peace+University,+Kothrud,+Pune&amp;output=embed"></iframe></div></section>' + cta())
+page("facilities.html", "Facilities", "Sports facilities at MIT-WPU, Pune, including the Dronacharya Sports Complex: venues, locations and guidelines.", facilities)
+
+# ================================================================= NEWS
+news = (page_hero("News", "News &amp; notices", "Fresh off<br><span class='grad'>the field.</span>",
+                  "Notices, selection trials, event updates and results from Sports Sphere.") +
+        '<section class="section"><div class="container"><div data-render="news-page">' + NOSCRIPT + '</div></div></section>'
+        '<section class="section cream"><div class="container">' + head("Follow the action", "Live updates on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>')
+page("news.html", "News & notices", "News, notices, selection trials, event updates and results from Sports Sphere at MIT-WPU.", news)
+
+# ================================================================= GALLERY
+gallery = (page_hero("Gallery", "Photos &amp; videos", "Moments<br><span class='grad'>that matter.</span>",
+                     "Photos and videos from Sports Sphere events, by sport, event and academic year.") +
+           '<section class="section"><div class="container"><div data-render="gallery">' + NOSCRIPT + '</div></div></section>'
+           '<section class="section cream"><div class="container">' + head("More on Instagram", "Follow<br><span class='grad'>the action</span>") + ig_cards() + '</div></section>')
+page("gallery.html", "Gallery", "Photos and videos from Sports Sphere events at MIT-WPU, by sport, event and academic year.", gallery)
+
+# ================================================================= SEARCH
+search = (page_hero("Search", "Search", "Find<br><span class='grad'>anything.</span>", "Search sports, events, achievements, news, facilities, teams and people.") +
+          '<section class="section"><div class="container narrow"><div data-render="search"><label class="search-field big"><span class="visually-hidden">Search the site</span>'
+          '<input type="search" placeholder="Try &quot;basketball&quot;, &quot;trials&quot; or &quot;Summit&quot;" autofocus></label><div data-results></div></div>' + NOSCRIPT + '</div></section>')
+page("search.html", "Search", "Search the Sports Sphere website.", search)
+
+# ================================================================= DETAIL PAGES (filled in by content.js from the tables)
+page("sport.html", "Sport", "A sport at MIT-WPU: teams, coaches, venue, achievements and events.",
+     '<div data-render="sport-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
+page("event.html", "Event", "A Sports Sphere event at MIT-WPU: dates, venue, results and photos.",
+     '<div data-render="event-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
+
+# ================================================================= SEO: sitemap + robots
+_today = datetime.date.today().isoformat()
+with open(os.path.join(ROOT, "sitemap.xml"), "w") as f:
+    f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+            "".join('  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, "" if n == "index.html" else n, _today)
+                    for n in PAGES_BUILT if n not in ("search.html", "sport.html", "event.html")) +
+            "".join('  <url><loc>%ssport.html?s=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, r["slug"], _today) for r in SPORTS) +
+            "".join('  <url><loc>%sevent.html?e=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, event_slug(e), _today) for e in EVENTS) +
+            '</urlset>\n')
+with open(os.path.join(ROOT, "robots.txt"), "w") as f:
+    f.write("User-agent: *\nAllow: /\nDisallow: /content/\nSitemap: " + SITE_URL + "sitemap.xml\n")
+
+
+print("Built %d pages in" % len(PAGES_BUILT), ROOT)

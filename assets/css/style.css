@@ -909,3 +909,55 @@ a.sport-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3
 .sport-hero ~ .section, .event-hero ~ .section { padding: clamp(56px, 7vw, 88px) 0; }
 .facility-grid:not(.full) .facility-card .media { height: auto; }
 .select-field { flex: 1 1 160px; }
+
+/* =========================================================================
+   v4 polish: branded photo slots, hero watermarks, calmer placeholders, people cards
+   ========================================================================= */
+
+/* Photo slots: a designed brand panel until real photos arrive (not a grey "missing" box) */
+.media.ph { background:
+    radial-gradient(circle at 18% 12%, rgba(246,195,67,.28), transparent 42%),
+    radial-gradient(circle at 88% 92%, rgba(226,69,43,.38), transparent 46%),
+    var(--grad-night); }
+.media.ph::before { z-index: 0; opacity: 1;
+  background:
+    radial-gradient(rgba(255,255,255,.14) 1.2px, transparent 1.6px) 0 0 / 16px 16px,
+    url("../img/logo/sports-sphere-badge.webp") center 44% / min(46%, 220px) no-repeat;
+  -webkit-mask: none; mask: none; }
+.media.ph .ph-icon { display: none; }
+.media.ph::after { z-index: 1; left: 18px; right: auto; bottom: 18px; padding: 7px 12px; border-radius: 99px; background: rgba(255,255,255,.12); backdrop-filter: blur(4px); color: rgba(255,255,255,.92); font-size: .64rem; }
+.media.ph.slant::after { left: 11%; }
+.person .media.ph::before { background-size: 16px 16px, 62%; }
+.person .media.ph::after { display: none; }
+.facility-card .media.ph::after { content: "Photo coming soon"; }
+.g-item .ph-icon { display: grid; }
+
+/* Inner page heroes: a big outlined watermark word, like the footer */
+.page-hero[data-mark]::after {
+  content: attr(data-mark); position: absolute; z-index: -1; right: -.04em; bottom: -.2em; pointer-events: none; user-select: none;
+  white-space: nowrap; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -.02em; line-height: 1;
+  font-size: clamp(5rem, 15vw, 13.5rem); color: transparent; -webkit-text-stroke: 2px rgba(21,28,79,.07);
+}
+.page-hero .container { position: relative; }
+@media (max-width: 600px) { .page-hero[data-mark]::after { font-size: 26vw; -webkit-text-stroke-width: 1.5px; } }
+
+/* "Awaiting confirmation": calm, clearly labelled, and the section shrinks around it */
+.pending-note { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; background: var(--white); border: 1.5px dashed #E9B184; border-left: 4px solid var(--orange); }
+.section.surface .pending-note, .section.cream .pending-note { background: var(--white); }
+.pn-icon { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #FFF1E4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B9500F' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E") center / 20px no-repeat; }
+.section.is-pending { padding: clamp(48px, 6vw, 72px) 0; }
+.section.is-pending .section-head { margin-bottom: 22px; }
+
+/* People: roomier cards, photo/initials on top */
+.people-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; }
+.person-card { flex-direction: column; gap: 14px; padding: 24px; position: relative; overflow: hidden; transition: transform .3s var(--ease), box-shadow .3s; }
+.person-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--grad-ring); }
+.person-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.avatar { width: 76px; height: 76px; }
+.person-card h3 { font-size: 1.12rem; }
+
+/* Empty states with a little more presence */
+.empty { padding: 34px 26px; background: var(--white) url("../img/logo/sports-sphere-badge.webp") center 22px / 44px no-repeat; padding-top: 80px; }
+.section.surface .empty, .section.cream .empty { background-color: var(--white); }
+.media.ph.slant::after { top: 20px; bottom: auto; left: auto; right: 11%; }
+@media (max-width: 600px) { .media.ph.slant::after { display: none; } }

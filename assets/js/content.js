@@ -45,7 +45,7 @@
   function initials(n) { return String(n || '').replace(/^(prof|dr|mr|mrs|ms|shri|smt)\.?\s+/gi, '').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
   function emptyMsg(t) { return '<p class="empty">' + t + '</p>'; }
   /* A clearly labelled gap the Sports Office still has to fill — never shown as if it were real content */
-  function pendingNote(t) { return '<div class="pending-note"><b>Awaiting confirmation</b><p>' + t + '</p></div>'; }
+  function pendingNote(t) { return '<div class="pending-note"><span class="pn-icon" aria-hidden="true"></span><div><b>Awaiting confirmation</b><p>' + t + '</p></div></div>'; }
   function hideWrap(box, hide) { var w = box.closest('[data-hide-empty]'); if (w) w.hidden = hide; }
   function sameSport(v, sp) { var k = slugify(v); return !!k && (k === sp.slug || k === slugify(sp.name)); }
 
@@ -510,7 +510,7 @@
     var fac = listed(d.facilities).filter(function (f) { return (sp.venue && slugify(sp.venue) === f.slug) || list(String(f.sports).replace(/,/g, ';')).some(function (v) { return sameSport(v, sp); }); });
     var evs = d.events.filter(function (e) { return sameSport(e.sport, sp) || e.title.toLowerCase().indexOf(sp.name.toLowerCase()) > -1; });
     var upcoming = evs.filter(function (e) { return status(e) !== 'past'; }), trials = d.events.filter(function (e) { return /trial/i.test(e.category + ' ' + e.title) && status(e) !== 'past'; })[0];
-    box.innerHTML = '<section class="page-hero sport-hero" style="--c:' + c + '"><div class="container">' + crumbs([['Sports', 'sports.html'], [sp.name]]) +
+    box.innerHTML = '<section class="page-hero sport-hero" data-mark="' + esc(sp.name) + '" style="--c:' + c + '"><div class="container">' + crumbs([['Sports', 'sports.html'], [sp.name]]) +
       '<div class="sport-hero-grid"><div><span class="eyebrow">' + esc({ team: 'Team sport', individual: 'Individual sport', mind: 'Mind sport' }[sp.category] || 'Sport') + ' · ' + esc(sp.gender) + '</span>' +
       '<h1 class="h1">' + esc(sp.name) + '</h1><p class="lead">' + esc(sp.summary) + '</p></div><div class="sport-hero-icon" aria-hidden="true">' + icon(sp.icon || sp.slug) + '</div></div></div></section>' +
       '<section class="section"><div class="container split top"><div>' + sectionHead('About', 'The<br><span class="grad">game</span>') +
@@ -551,7 +551,7 @@
     var facts = [['Dates', r.long], ['Status', st === 'live' ? 'Happening now' : st === 'past' ? 'Completed' : 'Upcoming'], ['Season', e.season.replace('-', '–')]];
     if (e.category) facts.push(['Category', e.category]);
     facts.push(['Venue', e.venue || 'To be announced']);
-    box.innerHTML = '<section class="page-hero event-hero" style="--c:' + e.colour + '"><div class="container">' + crumbs([['Events', 'events.html'], [e.title]]) +
+    box.innerHTML = '<section class="page-hero event-hero" data-mark="Events" style="--c:' + e.colour + '"><div class="container">' + crumbs([['Events', 'events.html'], [e.title]]) +
       '<div class="event-hero-grid"><div>' + statusPill(e) + '<h1 class="h1">' + esc(e.title) + '</h1><p class="lead">' + esc(e.description) + '</p>' +
       (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow @sportssphere__mitwpu for the announcement.</p>' : '')) + '</div>' +
       (e.image ? '<div class="event-hero-img"><img src="' + esc(imgUrl(e.image)) + '" alt="' + esc(e.title) + '"></div>' : '<div class="event-date big"><strong>' + esc(r.day) + '</strong><span>' + esc(r.month) + '</span></div>') +
@@ -675,6 +675,11 @@
     renderSportDetail(d);
     renderEventDetail(d);
     renderSearch(d);
+    /* Sections that only hold "awaiting confirmation" notes get less height */
+    document.querySelectorAll('.section').forEach(function (sec) {
+      var real = sec.querySelector('.ach-card,.team-card,.person-card,.facility-card,.g-item,.news-card,.event-row,.result-card,.prose,.sport-card,.stat,.form,.why,.value,.timeline,.feature-list,.vm,.tier,.sponsor,.ig-card,.split');
+      sec.classList.toggle('is-pending', !!sec.querySelector('.pending-note') && !real);
+    });
     if (CFG.sheetId) { renderStats(fresh(d.stats)); renderSponsors(fresh(d.sponsors)); renderSportsGrid(fresh(sports)); } // otherwise the page already shows the same local data
     applySettings(settings);
     applyPortal(portal);

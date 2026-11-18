@@ -88,11 +88,13 @@
   function status(e) { return TODAY < e.start ? 'upcoming' : (TODAY > e.end ? 'past' : 'live'); }
 
   /* ---------- loading ---------- */
+  /* The site root, worked out from this script's own address (so pages at any depth, like the 404 page, find /content) */
+  var SITE_ROOT = (function () { var el = document.querySelector('script[src*="assets/js/content.js"]'); try { return el ? new URL('../../', el.src).href : ''; } catch (e) { return ''; } })();
   function fetchText(url) { return fetch(url, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }); }
   function load(tab) {
-    var local = function () { return fetchText('content/' + tab + '.csv').then(parseCSV).catch(function () { return []; }); };
+    var local = function () { return fetchText(SITE_ROOT + 'content/' + tab + '.csv').then(parseCSV).catch(function () { return []; }); };
     if (!CFG.sheetId) return local();
-    var url = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(CFG.sheetId) + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(tab);
+    var url = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(CFG.sheetId) + '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(tab);
     return fetchText(url).then(function (t) {
       if (/^\s*</.test(t)) throw new Error('not csv'); // sheet not shared publicly
       return parseCSV(t);
@@ -384,6 +386,7 @@
       '<aside class="article-aside"><dl class="fact-list">' + facts.map(function (x) { return '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') +
       (ev ? '<div><dt>Event</dt><dd><a href="event.html?e=' + esc(ev.slug) + '">' + esc(ev.title) + '</a></dd></div>' : '') +
       (sp ? '<div><dt>Sport</dt><dd><a href="sport.html?s=' + esc(sp.slug) + '">' + esc(sp.name) + '</a></dd></div>' : '') + '</dl>' +
+      (n._dl && !n.closed ? calButtons({ title: 'Deadline: ' + n.title, start: n._dl, end: n._dl, details: n.summary || '', location: '', id: n.slug }) : '') +
       '<a class="link-arrow mt-2" href="news.html">All news &amp; notices ' + ARROW + '</a></aside></div></section>' +
       (more.length ? '<section class="section surface"><div class="container">' + sectionHead('Keep reading', 'More<br><span class="grad">' + (n.kind === 'notice' ? 'notices' : 'news') + '</span>') + storyList(more) + '</div></section>' : '');
     var cp = box.querySelector('[data-copy]');
@@ -431,6 +434,25 @@
       return '<span>/</span>' + (p[1] && i < parts.length - 1 ? '<a href="' + p[1] + '">' + esc(p[0]) + '</a>' : '<span>' + esc(p[0]) + '</span>');
     }).join('') + '</nav>';
   }
+  /* ---------- add to calendar (Google link + .ics file for iPhone / Outlook) ---------- */
+  function ymd(d) { return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2); }
+  function dayAfter(d) { var x = new Date(d.getTime()); x.setDate(x.getDate() + 1); return x; }
+  function calButtons(o) { // o: {title, start, end, details, location, id}
+    var g = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(o.title) + '&dates=' + ymd(o.start) + '/' + ymd(dayAfter(o.end)) +
+      '&details=' + encodeURIComponent(o.details + '\n' + location.href.split('#')[0]) + '&location=' + encodeURIComponent(o.location);
+    return '<div class="cal-add"><span>Add to calendar</span><a class="share-btn" href="' + esc(g) + '" target="_blank" rel="noopener">Google Calendar</a>' +
+      '<button type="button" class="share-btn" data-ics="' + esc(JSON.stringify({ t: o.title, s: ymd(o.start), e: ymd(dayAfter(o.end)), d: o.details, l: o.location, id: o.id })) + '">iPhone / Outlook</button></div>';
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-ics]'); if (!b) return;
+    var o = JSON.parse(b.getAttribute('data-ics')), f = function (v) { return String(v || '').replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n'); };
+    var now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sports Sphere//MIT-WPU//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', 'UID:' + o.id + '@sports-sphere-mitwpu', 'DTSTAMP:' + now,
+      'DTSTART;VALUE=DATE:' + o.s, 'DTEND;VALUE=DATE:' + o.e, 'SUMMARY:' + f(o.t), 'DESCRIPTION:' + f(o.d + '\n' + location.href.split('#')[0]), 'LOCATION:' + f(o.l), 'URL:' + location.href.split('#')[0], 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    var url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })), a = document.createElement('a');
+    a.href = url; a.download = slugify(o.t) + '.ics'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
   function setTitle(t) { document.title = t + ' | Sports Sphere · MIT-WPU'; }
 
   /* ---------- achievements ---------- */
@@ -655,7 +677,8 @@
     facts.push(['Venue', e.venue || 'To be announced']);
     box.innerHTML = '<section class="page-hero event-hero" data-mark="Events" style="--c:' + e.colour + '"><span class="hero-mark" aria-hidden="true">Events</span><div class="container">' + crumbs([['Events', 'events.html'], [e.title]]) +
       '<div class="event-hero-grid"><div>' + statusPill(e) + '<h1 class="h1">' + esc(e.title) + '</h1><p class="lead">' + esc(e.description) + '</p>' +
-      (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow @sportssphere__mitwpu for the announcement.</p>' : '')) + '</div>' +
+      (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow @sportssphere__mitwpu for the announcement.</p>' : '')) +
+      (st !== 'past' ? calButtons({ title: e.title + ' · Sports Sphere', start: e.start, end: e.end, details: e.description, location: e.venue || 'MIT World Peace University, Kothrud, Pune', id: e.slug }) : '') + '</div>' +
       (e.image ? '<div class="event-hero-img"><img src="' + esc(imgUrl(e.image)) + '" alt="' + esc(e.title) + '"></div>' : '<div class="event-date big"><strong>' + esc(r.day) + '</strong><span>' + esc(r.month) + '</span></div>') +
       '</div></div></section>' +
       '<section class="section"><div class="container split top"><div>' + sectionHead('About the event', 'Event<br><span class="grad">details</span>') +
@@ -673,6 +696,44 @@
     var g = box.querySelector('[data-render-local="gallery"]'); g.setAttribute('data-render', 'gallery'); renderGallery(d.gallery);
   }
 
+  /* ---------- FAQ (accordion, grouped by category, searchable) ---------- */
+  function renderFaq(rows) {
+    document.querySelectorAll('[data-render="faq"]').forEach(function (box) {
+      var only = box.getAttribute('data-category'), items = listed(rows).filter(function (f) { return f.question && f.answer && (!only || f.category === only); })
+        .sort(function (a, b) { return String(a.category).localeCompare(String(b.category)) || (+a.order || 99) - (+b.order || 99); });
+      if (!items.length) { box.innerHTML = pendingNote('Frequently asked questions are being prepared by the Sports Office.'); return; }
+      var qa = function (f, i) { return '<details class="faq-item"' + (i === 0 && only ? ' open' : '') + '><summary>' + esc(f.question) + '</summary><p>' + esc(f.answer) + '</p></details>'; };
+      if (only) { box.innerHTML = '<div class="faq">' + items.map(qa).join('') + '</div>'; return; }
+      var cats = uniq(items, 'category');
+      box.innerHTML = '<label class="search-field"><span class="visually-hidden">Search questions</span><input type="search" placeholder="Search questions" data-q></label><div data-list></div>';
+      var out = box.querySelector('[data-list]');
+      function draw(q) {
+        var ws = words(q), shown = items.filter(function (f) { var hay = (f.question + ' ' + f.answer).toLowerCase(); return ws.every(function (w) { return hay.indexOf(w) > -1; }); });
+        out.innerHTML = shown.length ? cats.map(function (c) {
+          var inCat = shown.filter(function (f) { return f.category === c; }); if (!inCat.length) return '';
+          return '<div class="faq-group"><h3 class="faq-cat">' + esc(c || 'General') + '</h3><div class="faq">' + inCat.map(function (f) { return qa(f, ws.length ? 0 : 1); }).join('') + '</div></div>';
+        }).join('') : emptyMsg('No questions match. <a href="contact.html">Ask the Sports Office</a>.');
+        if (ws.length) out.querySelectorAll('details').forEach(function (d) { d.open = true; });
+      }
+      box.querySelector('[data-q]').oninput = function (ev) { draw(ev.target.value); };
+      draw(param('q'));
+    });
+  }
+  /* ---------- downloads (circulars, rulebooks, forms) ---------- */
+  function renderDownloads(rows) {
+    document.querySelectorAll('[data-render="downloads"]').forEach(function (box) {
+      var items = listed(rows).filter(function (r) { return r.title && safeUrl(r.file); }).map(function (r) { r._d = parseDate(r.date); return r; })
+        .sort(function (a, b) { return String(a.category).localeCompare(String(b.category)) || ((b._d || 0) - (a._d || 0)); });
+      if (!items.length) { box.innerHTML = pendingNote('Rulebooks, circulars and forms will be available to download here once the Sports Office adds them.'); return; }
+      box.innerHTML = '<ul class="download-list">' + items.map(function (r) {
+        var u = safeUrl(r.file), ext = (u.match(/\.([a-z0-9]{2,4})(?:$|\?)/i) || [])[1];
+        return '<li><a href="' + esc(u) + '" target="_blank" rel="noopener"><span class="dl-icon">' + icon('clipboard') + '</span><span class="dl-body"><b>' + esc(r.title) + '</b>' +
+          '<small>' + [r.category, fmtDate(r._d), ext && ext.toUpperCase()].filter(Boolean).map(esc).join(' · ') + '</small>' + (r.description ? '<span>' + esc(r.description) + '</span>' : '') + '</span>' +
+          '<span class="dl-go">Download</span></a></li>';
+      }).join('') + '</ul>';
+    });
+  }
+
   /* ---------- site search: search.html?q= ---------- */
   var PAGES = [
     ['About Sports Sphere', 'about.html', 'vision mission objectives responsibilities leadership history milestones department'],
@@ -680,7 +741,7 @@
     ['Achievements', 'achievements.html', 'medals awards honours results'], ['Teams and coaches', 'teams.html', 'squads athletes coaches captains'],
     ['Facilities', 'facilities.html', 'venues infrastructure dronacharya complex grounds courts'], ['News and notices', 'news.html', 'notices trials updates announcements'],
     ['Gallery', 'gallery.html', 'photos videos pictures'], ['Partner with us', 'partner.html', 'sponsor sponsorship packages brands'],
-    ['Join Sports Sphere', 'join.html', 'volunteer join team apply'], ['Contact', 'contact.html', 'email address location instagram']
+    ['Join Sports Sphere', 'join.html', 'volunteer join team apply'], ['FAQ & downloads', 'faq.html', 'questions help rulebook circular form download'], ['Contact', 'contact.html', 'email address location instagram']
   ];
   function renderSearch(d) {
     var box = document.querySelector('[data-render="search"]'); if (!box) return;
@@ -692,6 +753,8 @@
     listed(d.achievements).forEach(function (a) { idx.push({ type: 'Achievement', title: a.title, text: [a.winner, a.competition, a.description, a.sport, a.year].join(' '), url: 'achievements.html?q=' + encodeURIComponent(a.title), sub: a.year }); });
     listed(d.facilities).forEach(function (f) { idx.push({ type: 'Facility', title: f.name, text: f.description + ' ' + f.sports + ' ' + f.location, url: 'facilities.html#' + (f.slug || slugify(f.name)) }); });
     listed(d.people).forEach(function (p) { idx.push({ type: 'People', title: p.name, text: p.role + ' ' + p.sport + ' ' + p.bio, url: /leader/i.test(p.group) ? 'about.html#people' : 'teams.html', sub: p.role }); });
+    listed(d.faq).forEach(function (f) { idx.push({ type: 'FAQ', title: f.question, text: f.answer, url: 'faq.html?q=' + encodeURIComponent(f.question) }); });
+    listed(d.downloads).forEach(function (r) { if (safeUrl(r.file)) idx.push({ type: 'Download', title: r.title, text: r.category + ' ' + r.description, url: safeUrl(r.file) }); });
     listed(d.teams).forEach(function (t) { idx.push({ type: 'Team', title: t.name, text: [t.sport, t.captain, t.coach, t.description].join(' '), url: 'teams.html?sport=' + encodeURIComponent(t.sport) }); });
     var input = box.querySelector('input'), out = box.querySelector('[data-results]');
     function draw() {
@@ -740,14 +803,14 @@
   var NEED = { calendar: [], next: [], spotlight: [], stats: ['stats'], sponsors: ['sponsors'], news: ['news'], 'news-page': ['news'], results: ['results'],
     achievements: ['achievements'], people: ['people'], teams: ['teams', 'sports'], facilities: ['facilities'], gallery: ['gallery'], 'sports-grid': ['sports'],
     'sport-detail': ['sports', 'teams', 'people', 'achievements', 'facilities', 'gallery', 'results'], 'event-detail': ['sports', 'results', 'gallery'], article: ['sports'], notices: [],
-    search: ['sports', 'news', 'achievements', 'facilities', 'people', 'teams'] };
+    search: ['sports', 'news', 'achievements', 'facilities', 'people', 'teams', 'faq', 'downloads'], faq: ['faq'], downloads: ['downloads'] };
   var tables = ['events', 'settings', 'news'];
   document.querySelectorAll('[data-render]').forEach(function (el) { (NEED[el.getAttribute('data-render')] || []).forEach(function (t) { if (tables.indexOf(t) < 0) tables.push(t); }); });
   if (document.querySelector('[data-render="calendar"],[data-render="event-detail"]') && tables.indexOf('results') < 0) tables.push('results');
 
   Promise.all(tables.map(load)).then(function (res) {
     var d = {}; tables.forEach(function (t, i) { d[t] = res[i]; });
-    ['stats', 'sponsors', 'news', 'results', 'sports', 'people', 'achievements', 'facilities', 'gallery', 'teams'].forEach(function (t) { d[t] = d[t] || []; });
+    ['stats', 'sponsors', 'news', 'results', 'sports', 'people', 'achievements', 'facilities', 'gallery', 'teams', 'faq', 'downloads'].forEach(function (t) { d[t] = d[t] || []; });
     var settings = {}; d.settings.forEach(function (r) { if (r.key) settings[r.key.trim()] = r.value; });
     var portal = portalBase(settings.registration_portal);
     var withResults = {}; listed(d.results).forEach(function (r) { withResults[slugify(r.event) + '|' + (r.season || '')] = 1; withResults[slugify(r.event) + '|'] = 1; });
@@ -781,6 +844,8 @@
     renderGallery(d.gallery);
     renderSportDetail(d);
     renderEventDetail(d);
+    renderFaq(d.faq);
+    renderDownloads(d.downloads);
     renderSearch(d);
     /* Sections that only hold "awaiting confirmation" notes get less height */
     document.querySelectorAll('.section').forEach(function (sec) {

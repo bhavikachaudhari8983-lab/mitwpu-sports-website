@@ -4,20 +4,24 @@ You don't need to know any code. Everything that changes during the year lives i
 
 ---
 
-## One-time setup (done once by whoever manages the website)
+## One-time setup (done once by whoever manages the website, about 10 minutes)
 
-1. Create a new Google Sheet called **Sports Sphere Website**.
-2. Make 6 tabs, named exactly: `events`, `stats`, `sponsors`, `news`, `results`, `settings`.
-3. Into each tab, import the matching file from this `content` folder (**File → Import → Upload → Replace current sheet**).
-4. Click **Share → General access → Anyone with the link → Viewer**.
-5. Copy the long code from the sheet's address (the part between `/d/` and `/edit`) and paste it into `assets/js/config.js`:
+You'll have a ready-made file: **Sports-Sphere-Website-Content.xlsx**. It already has all 14 tabs (`events`, `news`, `sports`, `achievements`, `people`, `teams`, `facilities`, `gallery`, `faq`, `downloads`, `results`, `sponsors`, `stats`, `settings`), the current content, dropdowns for fixed choices, and a note on every column heading. (A developer can rebuild it at any time with `python3 tools/make_sheet_template.py`.)
+
+1. Open **Google Drive → New → File upload** and upload `Sports-Sphere-Website-Content.xlsx`.
+2. Open it, then **File → Save as Google Sheets**. Use the new Google Sheets copy from now on.
+3. **Share → General access → Anyone with the link → Viewer.** (The website reads the sheet through this link.)
+4. Still in **Share**, add the Sports Office staff who will update the site as **Editors**. Only editors can change the website.
+5. Copy the long code from the sheet's address (the part between `/d/` and `/edit`) and send it to the developer, who pastes it into `assets/js/config.js` and redeploys once:
    ```
    sheetId: "PASTE-THE-CODE-HERE"
    ```
 
-From then on, the website reads the sheet directly.
+From then on the website reads the sheet directly: edit, save, refresh the website.
 
-> Until this is done, the website reads the `.csv` files in this folder. You can edit those instead, in Excel or Google Sheets, and upload them again.
+> ⚠️ **Privacy:** anyone with the sheet's link can read it, because the website needs that. Never put private information in it: no student phone numbers, emails, ID numbers or dates of birth. Keep those in the registration system.
+
+> Until the sheet is connected, the website reads the `.csv` files in this folder.
 
 ---
 
@@ -156,6 +160,22 @@ Separate items in **sports**, **features** and **guidelines** with `;`.
 - **Photos:** a Google Drive share link works (set the file to "Anyone with the link can view"), as does any direct image link.
 - **Videos:** paste a YouTube link; the thumbnail is fetched automatically.
 - Write the **event** exactly as it's written in the `events` tab, so the photos also show on that event's page.
+
+### ❓ FAQ (`faq` tab)
+
+| question | answer | category | order |
+|---|---|---|---|
+| How do I book a court? | Book through the Sports Office… | Facilities | 1 |
+
+Questions appear on the FAQ page grouped by **category**, and the `Trials & teams` ones also on the Sports page. **Only add answers the Sports Office has confirmed.**
+
+### 📄 Downloads (`downloads` tab)
+
+| title | category | file | date | description |
+|---|---|---|---|---|
+| Hoop It Up 2027 rulebook | Rulebook | PDF link (Google Drive share link works) | 2027-07-01 | Rules, eligibility and format |
+
+Files appear on the FAQ & downloads page. For a notice with a deadline, use the `attachment` column in `news` instead.
 
 ### 📅 Extra event columns
 

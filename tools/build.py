@@ -152,7 +152,7 @@ def ig_url(h):
 # --------------------------------------------------------------- layout
 # (link, label, sub-pages). Pages listed in the 4th item light up that menu entry too.
 NAV = [("index.html", "Home", [], []),
-       ("about.html", "About", [("about.html", "About Sports Sphere"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities")], []),
+       ("about.html", "About", [("about.html", "About Sports Sphere"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities"), ("faq.html", "FAQ &amp; downloads")], []),
        ("sports.html", "Sports", [], ["sport.html"]),
        ("events.html", "Events", [("events.html", "Event calendar"), ("achievements.html", "Achievements")], ["event.html"]),
        ("news.html", "News", [("news.html", "News &amp; notices"), ("gallery.html", "Gallery")], ["article.html"]),
@@ -194,7 +194,7 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '<p>MIT-WPU\'s official sports management &amp; event platform, uniting athletes, institutions and brands through the culture of collegiate sport.</p>'
           '<img class="footer-mit" src="assets/img/logo/mitwpu-logo-white.webp" alt="MIT-WPU" width="74" height="70"></div>\n'
           '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="teams.html">Teams &amp; coaches</a></li><li><a href="facilities.html">Facilities</a></li><li><a href="events.html">Season calendar</a></li><li><a href="achievements.html">Achievements</a></li><li><a href="news.html">News &amp; notices</a></li><li><a href="gallery.html">Gallery</a></li></ul></div>\n'
-          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join Sports Sphere</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
+          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join Sports Sphere</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="faq.html">FAQ &amp; downloads</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
           '      <div><h4>Follow us</h4><ul class="footer-links ig-links">' +
           ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s</a></li>' % (ig_url(h), I["ig"], h) for h, _, _, _ in IG) +
           '</ul><p class="footer-small">MIT World Peace University<br>S. No. 124, Paud Road, Kothrud, Pune 411038</p>'
@@ -208,8 +208,17 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '  </div>\n</footer>')
 
 SITE_URL = "https://sports-sphere-website.vercel.app/"
+
 ICONS_JSON = json.dumps({k: v for k, v in I.items() if k not in ("fb", "yt", "li")}, separators=(",", ":"))
 PAGES_BUILT = []
+# Structured data for Google: the organisation (home) and the season's events (events page) can show as rich results.
+def _ld(obj):
+    return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False).replace("</", "<\\/") + '</script>\n'
+_ORG = {"@type": "SportsOrganization", "name": "Sports Sphere, MIT-WPU", "alternateName": "Sports Sphere", "url": SITE_URL if "SITE_URL" in dir() else "",
+        "slogan": "Fueling Passion. Building Champions.", "parentOrganization": {"@type": "CollegeOrUniversity", "name": "MIT World Peace University", "url": "https://mitwpu.edu.in"},
+        "address": {"@type": "PostalAddress", "streetAddress": "S. No. 124, Paud Road, Kothrud", "addressLocality": "Pune", "postalCode": "411038", "addressCountry": "IN"},
+        "sameAs": ["https://www.instagram.com/sportssphere__mitwpu/", "https://www.instagram.com/hoopitup_mitwpu/", "https://www.instagram.com/mitwpusummit/"]}
+JSONLD = {}
 NOSCRIPT = '<noscript><p class="empty">This section needs JavaScript to load. Please enable it, or follow @sportssphere__mitwpu on Instagram.</p></noscript>'
 
 def page(fname, title, desc, body):
@@ -220,7 +229,11 @@ def page(fname, title, desc, body):
             '<title>' + full + '</title>\n<meta name="description" content="' + desc + '">\n'
             '<meta name="theme-color" content="#151C4F">\n<meta property="og:type" content="website">\n'
             '<meta property="og:title" content="' + full + '">\n<meta property="og:description" content="' + desc + '">\n'
-            '<!-- TODO: make og:image an absolute URL once the domain is known -->\n<meta property="og:image" content="assets/img/logo/sports-sphere-logo.png">\n'
+            '<meta property="og:site_name" content="Sports Sphere · MIT-WPU">\n<meta property="og:url" content="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
+            '<meta property="og:image" content="' + SITE_URL + 'assets/img/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
+            '<meta property="og:image:alt" content="Sports Sphere, MIT-WPU: Fueling passion. Building champions.">\n'
+            '<meta name="twitter:card" content="summary_large_image">\n'
+            + JSONLD.get(fname, "") +
             '<link rel="icon" href="assets/img/favicon.png" type="image/png">\n'
             '<link rel="apple-touch-icon" href="assets/img/logo/sports-sphere-badge.png">\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
@@ -476,6 +489,16 @@ def honour_cards():
 def field(id_, label, inner, full=False):
     return '<div class="field%s"><label for="%s">%s</label>%s</div>' % (" full" if full else "", id_, label, inner)
 
+_ORG["url"] = SITE_URL
+_ORG["logo"] = SITE_URL + "assets/img/logo/sports-sphere-logo.png"
+JSONLD["index.html"] = _ld(dict({"@context": "https://schema.org"}, **_ORG))
+JSONLD["events.html"] = _ld({"@context": "https://schema.org", "@graph": [{
+    "@type": "SportsEvent", "name": e["title"], "startDate": e["start_d"].isoformat(), "endDate": e["end_d"].isoformat(),
+    "description": e.get("description", ""), "eventStatus": "https://schema.org/EventScheduled", "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "url": SITE_URL + "event.html?e=" + event_slug(e), "image": SITE_URL + "assets/img/og-image.png",
+    "location": {"@type": "Place", "name": e.get("venue") or "MIT World Peace University", "address": {"@type": "PostalAddress", "streetAddress": "S. No. 124, Paud Road, Kothrud", "addressLocality": "Pune", "postalCode": "411038", "addressCountry": "IN"}},
+    "organizer": {"@type": "SportsOrganization", "name": "Sports Sphere, MIT-WPU", "url": SITE_URL}} for e in EVENTS if e["end_d"] >= BUILD_DAY]})
+
 # ================================================================= HOME
 home = ('<section class="hero"><div class="container hero-grid"><div class="hero-copy">'
         '<span class="eyebrow reveal">MIT-WPU\'s Sports Management &amp; Event Platform</span>'
@@ -585,11 +608,7 @@ sports = (page_hero("Sports", "Sports list", "Find your<br><span class='grad'>ga
           '<section class="section" id="join"><div class="container split top"><div><span class="eyebrow reveal">Get in the game</span>'
           '<h2 class="h2 reveal">How to make<br><span class="grad">the team</span></h2><p class="lead mt-2 reveal">Selection trials for the university teams run at the start of every season (usually in August). Check the calendar for the dates and the registration form.</p>'
           '<a class="btn btn-primary mt-3 reveal" href="events.html#calendar">See trial dates ' + ARROW + '</a></div>'
-          '<div class="faq reveal" data-delay="1">'
-          '<details open><summary>Who can try out?</summary><p>Every enrolled MIT-WPU student, from any faculty, programme or year.</p></details>'
-          '<details><summary>Can other colleges take part?</summary><p>Yes. Hoop It Up and the Sports Summit are intercollegiate events that bring in teams from across the state and the country.</p></details>'
-          '<details><summary>What happens after selection?</summary><p>Selected athletes join the Athlete Induction Programme, then train and compete for MIT-WPU through the season.</p></details>'
-          '<details><summary>Are there women\'s events?</summary><p>Yes. Football, basketball, volleyball, badminton and table tennis all run men\'s and women\'s competition, and there\'s a dedicated women\'s wrestling championship.</p></details>'
+          '<div class="reveal" data-delay="1"><div data-render="faq" data-category="Trials &amp; teams">' + NOSCRIPT + '</div><a class="link-arrow mt-2" href="faq.html">All questions ' + ARROW + '</a>'
           '</div></div></section>' + cta())
 page("sports.html", "Sports", "The sports covered by Sports Sphere at MIT-WPU: football, cricket, basketball, volleyball, kabaddi, swimming, badminton, table tennis, chess and e-sports.", sports)
 
@@ -769,6 +788,16 @@ gallery = (page_hero("Gallery", "Photos &amp; videos", "Moments<br><span class='
            '<section class="section cream"><div class="container">' + head("More on Instagram", "Follow<br><span class='grad'>the action</span>") + ig_cards() + '</div></section>')
 page("gallery.html", "Gallery", "Photos and videos from Sports Sphere events at MIT-WPU, by sport, event and academic year.", gallery)
 
+# ================================================================= FAQ & DOWNLOADS
+faq = (page_hero("FAQ", "FAQ &amp; downloads", "Got a<br><span class='grad'>question?</span>",
+                 "Answers to the questions the Sports Office hears most, plus rulebooks, circulars and forms to download.") +
+       '<section class="section"><div class="container split top"><div>' + head("FAQ", "Frequently<br><span class='grad'>asked</span>") +
+       '<p class="lead">Can\'t find your answer? <a class="inline-link" href="contact.html">Ask the Sports Office</a>.</p></div>'
+       '<div data-render="faq">' + NOSCRIPT + '</div></div></section>'
+       '<section class="section surface" id="downloads"><div class="container">' + head("Downloads", "Rulebooks, circulars<br><span class='grad'>&amp; forms</span>") +
+       '<div data-render="downloads">' + NOSCRIPT + '</div></div></section>' + cta())
+page("faq.html", "FAQ & downloads", "Frequently asked questions about Sports Sphere at MIT-WPU, and rulebooks, circulars and forms to download.", faq)
+
 # ================================================================= SEARCH
 search = (page_hero("Search", "Search", "Find<br><span class='grad'>anything.</span>", "Search sports, events, achievements, news, facilities, teams and people.") +
           '<section class="section"><div class="container narrow"><div data-render="search"><label class="search-field big"><span class="visually-hidden">Search the site</span>'
@@ -783,12 +812,28 @@ page("article.html", "News", "News and notices from Sports Sphere at MIT-WPU.",
 page("event.html", "Event", "A Sports Sphere event at MIT-WPU: dates, venue, results and photos.",
      '<div data-render="event-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
 
+# ================================================================= 404 (Vercel serves 404.html for unknown addresses)
+nf = ('<section class="page-hero nf-hero" data-mark="404">' + streaks("right") + '<span class="hero-mark" aria-hidden="true">404</span><div class="container">'
+      '<span class="eyebrow">Page not found</span><h1 class="h1">Out of<br><span class="grad">bounds.</span></h1>'
+      '<p class="lead">This page doesn\'t exist, or it has moved. Try a search, or pick up from one of these.</p>'
+      '<form class="nf-search" action="search.html" method="get" role="search"><label class="search-field big"><span class="visually-hidden">Search the site</span>'
+      '<input type="search" name="q" placeholder="Search events, sports, news…"></label><button class="btn btn-primary" type="submit">Search ' + ARROW + '</button></form>'
+      '<div class="nf-links">' + "".join('<a class="sport-chip" href="%s" style="--c:%s"><span class="icon">%s</span><b>%s</b></a>' % (h, c, I[ic], t) for h, t, ic, c in
+          [("index.html", "Home", "flag", ORANGE), ("events.html", "Events", "trophy", BLUE), ("sports.html", "Sports", "football", GREEN),
+           ("news.html", "News", "megaphone", RED), ("contact.html", "Contact", "mail", YELLOW)]) + '</div></div></section>')
+page("404.html", "Page not found", "This page doesn't exist on the Sports Sphere website.", nf)
+_p = os.path.join(ROOT, "404.html")  # links must work from any depth (e.g. /old/page): resolve them from the site root
+_h = open(_p, encoding="utf-8").read()
+_h = re.sub(r'<link rel="canonical"[^>]*>\n', "", _h).replace("<head>\n", '<head>\n<meta name="robots" content="noindex">\n', 1)
+_h = re.sub(r'((?:href|src|action)=")(?!https?:|mailto:|tel:|#|/|data:)', r'\1/', _h)
+open(_p, "w", encoding="utf-8").write(_h)
+
 # ================================================================= SEO: sitemap + robots
 _today = datetime.date.today().isoformat()
 with open(os.path.join(ROOT, "sitemap.xml"), "w") as f:
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
             "".join('  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, "" if n == "index.html" else n, _today)
-                    for n in PAGES_BUILT if n not in ("search.html", "sport.html", "event.html", "article.html")) +
+                    for n in PAGES_BUILT if n not in ("search.html", "sport.html", "event.html", "article.html", "404.html")) +
             "".join('  <url><loc>%sarticle.html?n=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, slugify(r.get("slug") or (r["title"] + " " + r.get("date", ""))), _today)
                     for r in listed(read_csv("news")) if r.get("title")) +
             "".join('  <url><loc>%ssport.html?s=%s</loc><lastmod>%s</lastmod></url>\n' % (SITE_URL, r["slug"], _today) for r in SPORTS) +

@@ -1117,3 +1117,12 @@ a.sport-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3
   .event-row .btn, .event-row .link-arrow, .event-row .soon { margin-left: auto; }
 }
 @media (max-width: 760px) { .event-row .event-date { flex-basis: 72px; } .event-row .event-date strong { font-size: 1.3rem; white-space: nowrap; } .event-row .event-info { flex-basis: calc(100% - 90px); } }
+
+/* Watermark words: real elements, fitted by main.js so they are never cut off */
+.page-hero[data-mark]::after { content: none; }
+.hero-mark { position: absolute; z-index: -1; right: var(--gutter); bottom: 10px; pointer-events: none; user-select: none;
+  white-space: nowrap; padding-right: .08em; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -.02em; line-height: .86;
+  font-size: clamp(3rem, 9vw, 9rem); color: transparent; -webkit-text-stroke: 2px rgba(21,28,79,.08); }
+@media (max-width: 760px) { .hero-mark { right: 16px; bottom: 8px; -webkit-text-stroke-width: 1.5px; } }
+.footer-word { display: block; width: max-content; max-width: 100%; padding-right: .08em; font-size: clamp(3rem, 10vw, 14.5rem); margin-bottom: -.06em; }
+.footer-word { margin-bottom: 14px; line-height: .9; }

@@ -49,6 +49,28 @@
     o.classList.remove('is-open'); var b = o.querySelector('.sub-toggle'); b.setAttribute('aria-expanded', 'false'); b.focus();
   });
 
+  /* Outlined watermark words (page heroes, footer): sized so the whole word is always visible */
+  function fitWords() {
+    document.querySelectorAll('.hero-mark').forEach(function (el) {
+      var hero = el.parentElement, wide = window.innerWidth > 760;
+      var avail = wide ? hero.clientWidth * 0.62 : hero.clientWidth - 32;
+      fit(el, wide ? Math.min(210, hero.clientHeight * 0.5) : 110, avail);
+    });
+    document.querySelectorAll('.footer-word').forEach(function (el) {
+      var cs = getComputedStyle(el.parentElement);
+      fit(el, 232, el.parentElement.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+    });
+  }
+  function fit(el, max, avail) {
+    el.style.fontSize = max + 'px';
+    var w = el.scrollWidth;
+    if (w > avail) el.style.fontSize = Math.max(24, Math.floor(max * avail / w)) + 'px';
+  }
+  window.ssFit = fitWords;
+  fitWords();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitWords);
+  var fitTimer; window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fitWords, 120); });
+
   /* Reveal-on-scroll */
   var reveals = document.querySelectorAll('.reveal');
   if ('IntersectionObserver' in window) {

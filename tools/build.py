@@ -244,7 +244,7 @@ def asset(path):
 
 
 def page_hero(crumb, eyebrow, title_html, lead):
-    return ('<section class="page-hero" data-mark="' + crumb + '">' + streaks("right") + '<div class="container">'
+    return ('<section class="page-hero" data-mark="' + crumb + '">' + streaks("right") + '<span class="hero-mark" aria-hidden="true">' + crumb + '</span><div class="container">'
             '<nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span>/</span><span>' + crumb + '</span></nav>'
             '<span class="eyebrow">' + eyebrow + '</span><h1 class="h1">' + title_html + '</h1>'
             '<p class="lead">' + lead + '</p></div></section>')

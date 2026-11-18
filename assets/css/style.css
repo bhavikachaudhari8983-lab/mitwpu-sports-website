@@ -1048,3 +1048,72 @@ a.sport-card:focus-visible { outline: 3px solid var(--orange); outline-offset: 3
 .article-aside { position: sticky; top: calc(var(--header-h) + 20px); }
 @media (max-width: 900px) { .article-grid { grid-template-columns: 1fr; } .article-aside { position: static; } }
 .article-main .prose p { color: var(--ink); }
+
+/* =========================================================================
+   v6: shorter, more varied home page; calmer card titles; photo treatment
+   ========================================================================= */
+/* Home rhythm: a little tighter than inner pages */
+.page-index .section { padding: clamp(64px, 8vw, 104px) 0; }
+.page-index .section.tight { padding: clamp(44px, 5vw, 64px) 0; }
+
+/* Number band: navy, full width, big numbers (breaks up the white card sections) */
+.stat-band { position: relative; overflow: hidden; isolation: isolate; padding: clamp(40px, 5vw, 60px) 0; background: var(--grad-night); color: #fff; }
+.stat-band::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(rgba(255,255,255,.08) 1.2px, transparent 1.6px) 0 0 / 18px 18px; }
+.stat-band::after { content: ""; position: absolute; inset: auto 0 0 0; height: 5px; background: var(--grad-ring); }
+.stat-band .stats { gap: 0; }
+.stat-band .stat { background: transparent; border: 0; border-radius: 0; padding: 8px 28px; border-left: 1px solid rgba(255,255,255,.14); }
+.stat-band .stat:first-child { border-left: 0; padding-left: 0; }
+.stat-band .stat::after { display: none; }
+.stat-band .stat strong { color: #fff; font-size: clamp(2.6rem, 5vw, 4.2rem); }
+.stat-band .stat strong sup { color: var(--yellow); }
+.stat-band .stat span { color: rgba(255,255,255,.72); }
+.stat-band .stat strong::before { content: ""; display: block; width: 28px; height: 4px; margin-bottom: 14px; border-radius: 4px; background: var(--c, var(--orange)); }
+@media (max-width: 860px) { .stat-band .stats { grid-template-columns: 1fr 1fr; gap: 26px 0; } .stat-band .stat:nth-child(odd) { border-left: 0; padding-left: 0; } }
+
+/* Sport chips: one compact row instead of a big grid */
+.band-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 28px; }
+.sports-band .h2 { font-size: clamp(1.9rem, 3.6vw, 2.8rem); }
+.sport-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.sport-chip { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: var(--white); border: 1px solid var(--line); transition: transform .25s var(--ease), border-color .25s, box-shadow .25s; }
+.sport-chip .icon { flex: none; width: 42px; height: 42px; padding: 9px; border-radius: 50%; background: color-mix(in srgb, var(--c) 15%, white); color: var(--c); transition: background .25s, color .25s; }
+.sport-chip .icon svg { width: 100%; height: 100%; }
+.sport-chip b { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: .95rem; line-height: 1.05; color: var(--navy); }
+.sport-chip:hover { transform: translateY(-3px); border-color: var(--c); box-shadow: var(--shadow); }
+.sport-chip:hover .icon { background: var(--c); color: #fff; }
+@media (max-width: 1000px) { .sport-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 600px) {
+  .sport-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin-inline: calc(var(--gutter) * -1); padding: 4px var(--gutter) 12px; scrollbar-width: none; }
+  .sport-strip::-webkit-scrollbar { display: none; }
+  .sport-chip { flex: 0 0 auto; scroll-snap-align: start; }
+  .band-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+}
+
+/* Sponsors inside the dark partner section */
+.trusted { margin-top: clamp(40px, 5vw, 64px); padding-top: clamp(32px, 4vw, 48px); border-top: 1px solid rgba(255,255,255,.14); text-align: center; }
+.trusted .eyebrow { justify-content: center; margin-bottom: 22px; }
+.trusted .sponsor { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); box-shadow: none; }
+.trusted .sponsor b { color: #fff; }
+.trusted .sponsor span { color: rgba(255,255,255,.7); }
+.trusted .footnote { color: rgba(255,255,255,.6); }
+
+/* Calmer titles on small cards: the heavy italic capitals stay for headlines and big moments */
+.ach-card h3, .team-card h3, .timeline h3 { font-style: normal; text-transform: none; font-size: 1.2rem; line-height: 1.2; }
+.feature-list h3, .feature-list h4 { font-style: normal; }
+
+/* Photo treatment: real photos get the same light brand grade, so mixed phone photos look like one set */
+.media:not(.ph):not(.news-ph)::after, .article-img::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent 58%, rgba(12,17,54,.32)), linear-gradient(125deg, rgba(240,106,31,.08), rgba(21,28,79,.10)); }
+.article-img { position: relative; }
+.media img, .g-item img, .article-img img { filter: saturate(1.06) contrast(1.03); }
+.page-index .media.tall { aspect-ratio: 5 / 5; }
+/* Event rows on phones: date beside the title, labels and button on one wrapping line */
+@media (max-width: 760px) {
+  .event-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 16px 18px; }
+  .event-row .event-date { flex: 0 0 64px; }
+  .event-row .event-date strong { font-size: 1.6rem; }
+  .event-row .event-info { flex: 1 1 calc(100% - 80px); min-width: 0; }
+  .event-row .event-info h3 { font-size: 1.02rem; }
+  .event-row .pill, .event-row .status { flex: none; }
+  .event-row .btn, .event-row .link-arrow, .event-row .soon { margin-left: auto; }
+}
+@media (max-width: 760px) { .event-row .event-date { flex-basis: 72px; } .event-row .event-date strong { font-size: 1.3rem; white-space: nowrap; } .event-row .event-info { flex-basis: calc(100% - 90px); } }

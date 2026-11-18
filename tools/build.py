@@ -226,7 +226,7 @@ def page(fname, title, desc, body):
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
             '<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">\n'
             '<link rel="canonical" href="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
-            '<link rel="stylesheet" href="' + asset("assets/css/style.css") + '">\n</head>\n<body>\n'
+            '<link rel="stylesheet" href="' + asset("assets/css/style.css") + '">\n</head>\n<body class="page-' + fname[:-5] + '">\n'
             + header(fname) + '\n<main id="main">\n' + body + '\n</main>\n' + FOOTER +
             '\n<script type="application/json" id="ss-icons">' + ICONS_JSON + '</script>'
             '\n<script src="' + asset("assets/js/config.js") + '" defer></script>\n<script src="' + asset("assets/js/content.js") + '" defer></script>\n<script src="' + asset("assets/js/main.js") + '" defer></script>\n</body>\n</html>\n')
@@ -293,6 +293,10 @@ def sport_cards(items, with_cat=False):
                    '</span><div class="icon">' + I.get(r.get("icon") or r["slug"], I["trophy"]) + '</div><div><h3>' + r["name"] + '</h3><p>' + r.get("summary", "") + '</p></div></a>')
     return "\n".join(out)
 
+def sport_strip():
+    return "".join('<a class="sport-chip reveal" href="sport.html?s=%s" style="--c:%s"><span class="icon">%s</span><b>%s</b></a>'
+                   % (r["slug"], RING[n % 5], I.get(r.get("icon") or r["slug"], I["trophy"]), r["name"]) for n, r in enumerate(SPORTS))
+
 TAPE_ITEMS = ["Fueling passion", "Hoop It Up", "Sports Summit", "Building champions", "Football", "Cricket", "Basketball",
               "Student driven", "Volleyball", "Kabaddi", "Uniting sports", "Badminton", "Chess", "Creating legacies", "E-Sports"]
 tape_html = ''.join('<span>' + t + '</span>' for t in TAPE_ITEMS)
@@ -326,9 +330,9 @@ WHY = [
     ("handshake", "Community &amp; CSR value", "Association with sportsmanship, inclusivity and causes like National Sports Day.", GREEN),
     ("cap", "Access to academia", "A direct line into MIT-WPU's student ecosystem and partner institutions across India.", ORANGE),
 ]
-def why_cards():
+def why_cards(limit=None):
     return "".join('<div class="why reveal" data-delay="%d" style="--c:%s"><span class="fi">%s</span><h3>%s</h3><p>%s</p></div>'
-                   % (i % 3, c, I[ic], t, d) for i, (ic, t, d, c) in enumerate(WHY))
+                   % (i % 3, c, I[ic], t, d) for i, (ic, t, d, c) in enumerate(WHY[:limit]))
 
 TIERS = [  # name, price, benefits count, description, colour, featured
     ("Co-Host / Platinum", "&#8377;5,00,000", "12+", "The highest level of brand visibility across Sports Sphere's flagship events: prime logo placement, exclusive branding locations, stage recognition alongside dignitaries, volunteer jersey branding, premium digital promotions, exhibition space and strategic brand activations.", "#8A93B8", True),
@@ -495,17 +499,20 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
         '<a class="link-arrow mt-3 reveal" href="about.html">Our story ' + ARROW + '</a></div>'
         '<div class="media-wrap reveal" data-delay="1">' + streaks("right") + media("Match day · Sports Sphere photography", "tall slant", "camera", ORANGE) +
         '<div class="stamp"><strong>26</strong><span>International medals</span></div></div></div>'
-        '<div class="values">' + value_cards() + '</div></div></section>\n'
-        '<section class="section surface tight"><div class="container">' + stats_html() + '</div></section>\n'
+        '</div></section>\n'
+        '<section class="stat-band"><div class="container">' + stats_html() + '</div></section>\n'
         '<section class="section"><div class="container">' + head("Flagship events", "Our<br><span class='grad'>big stages</span>",
                                                                    '<a class="link-arrow reveal" href="events.html">Full season ' + ARROW + '</a>')
         + flagship_cards() + '</div></section>\n'
         '<section class="section surface"><div class="container">' + head("Season " + season_span(), "Next<br><span class='grad'>up</span>",
                                                                            '<a class="btn btn-ghost reveal" href="events.html#calendar">Full calendar ' + ARROW + '</a>')
         + '<div class="event-list" data-render="next" data-limit="4">' + event_rows([e for e in EVENTS if e["end_d"] >= BUILD_DAY][:4]) + '</div></div></section>\n'
-        '<section class="section"><div class="container">' + head("Pick your sport", "Find your<br><span class='grad'>game.</span>",
-                                                                   '<div class="reveal"><p class="lead">Ten sports across the Sports Sphere portfolio, with men\'s and women\'s events.</p><a class="link-arrow mt-2" href="sports.html">All sports ' + ARROW + '</a></div>')
-        + '<div class="sports-grid" data-render="sports-grid" data-limit="8">' + sport_cards(SPORTS[:8]) + '</div></div></section>\n'
+        '<section class="section" data-news-wrap hidden><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>", '<a class="link-arrow reveal" href="news.html">All news &amp; notices ' + ARROW + '</a>') +
+        '<div class="latest-grid"><div class="news-grid" data-render="news" data-limit="2"></div>'
+        '<div class="notice-panel"><h3 class="panel-title">Notice board</h3><div data-render="notices" data-limit="4"></div></div></div></div></section>\n'
+        '<section class="section tight sports-band"><div class="container"><div class="band-head"><div><span class="eyebrow reveal">Pick your sport</span>'
+        '<h2 class="h2 reveal">Find your<br><span class="grad">game.</span></h2></div><a class="link-arrow reveal" href="sports.html">All sports ' + ARROW + '</a></div>'
+        '<div class="sport-strip">' + sport_strip() + '</div></div></section>\n'
         '<section class="section surface" data-hide-empty><div class="container">' + head("Achievements", "Hall of<br><span class='grad-champ'>fame</span>",
                                                                                       '<a class="link-arrow reveal" href="achievements.html">All achievements ' + ARROW + '</a>')
         + '<div class="ach-grid" data-render="achievements" data-limit="3">' + NOSCRIPT + '</div></div></section>\n'
@@ -517,15 +524,12 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
         + '<div class="facility-grid" data-render="facilities" data-limit="2">' + NOSCRIPT + '</div></div></section>\n'
         '<section class="section night"><div class="container on-dark">' + head("For brands", "Why partner<br><span class='grad'>with us</span>",
                                                                                  '<div class="reveal"><p class="lead">Put your brand at the heart of passion, performance and purpose.</p><a class="btn btn-primary mt-2" href="partner.html">Sponsorship packages ' + ARROW + '</a></div>')
-        + '<div class="why-grid">' + why_cards() + '</div></div></section>\n'
-        '<section class="section"><div class="container">' + head("Previous sponsors", "Trusted<br><span class='grad'>by</span>") + sponsor_strip() + '</div></section>\n'
-        '<section class="section" data-news-wrap hidden><div class="container">' + head("Latest", "Fresh off<br><span class='grad'>the field</span>", '<a class="link-arrow reveal" href="news.html">All news &amp; notices ' + ARROW + '</a>') +
-        '<div class="latest-grid"><div class="news-grid" data-render="news" data-limit="2"></div>'
-        '<div class="notice-panel"><h3 class="panel-title">Notice board</h3><div data-render="notices" data-limit="4"></div></div></div></div></section>\n'
+        + '<div class="why-grid">' + why_cards(3) + '</div>'
+        '<div class="trusted"><span class="eyebrow">Trusted by</span>' + sponsor_strip() + '</div></div></section>\n'
         '<section class="section surface" data-hide-empty hidden><div class="container">' + head("Gallery", "Moments<br><span class='grad'>that matter</span>",
                                                                                          '<a class="link-arrow reveal" href="gallery.html">Full gallery ' + ARROW + '</a>')
         + '<div data-render="gallery" data-limit="8"></div></div></section>\n'
-        '<section class="section cream"><div class="container">' + head("Follow the action", "Join us on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>\n'
+        '<section class="section cream tight"><div class="container">' + head("Follow the action", "Join us on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>\n'
         + cta())
 page("index.html", "Home", "Sports Sphere is MIT-WPU's official sports management and event platform, home of Hoop It Up and the Sports Summit. Fueling passion, building champions.", home)
 

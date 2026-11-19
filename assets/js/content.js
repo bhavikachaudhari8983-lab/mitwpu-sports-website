@@ -120,16 +120,18 @@
     var seasons = []; events.forEach(function (e) { if (seasons.indexOf(e.season) < 0) seasons.push(e.season); });
     var current = currentSeason(events);
     var tabs = document.querySelector('[data-render="season-tabs"]');
-    var stTabs = document.querySelector('[data-render="status-tabs"]'), want = param('show') || 'all', shown = current;
+    var stTabs = document.querySelector('[data-render="status-tabs"]'), shown = current;
+    var want = param('show') || (stTabs && events.some(function (e) { return e.season === current && status(e) !== 'past'; }) ? 'upcoming' : 'all');
+    var match = function (e, k) { return k === 'all' || (k === 'upcoming' ? status(e) !== 'past' : status(e) === k); };
     var LABEL = { all: 'All', upcoming: 'Upcoming', live: 'Happening now', past: 'Completed' };
     function draw(season) {
       shown = season;
       var all = events.filter(function (e) { return e.season === season; });
       var next = all.filter(function (e) { return status(e) !== 'past'; })[0];
-      var list = all.filter(function (e) { return want === 'all' || status(e) === want; });
+      var list = all.filter(function (e) { return match(e, want); });
       if (stTabs) {
         stTabs.innerHTML = ['all', 'upcoming', 'live', 'past'].map(function (k) {
-          var n = k === 'all' ? all.length : all.filter(function (e) { return status(e) === k; }).length;
+          var n = all.filter(function (e) { return match(e, k); }).length;
           return '<button class="filter-btn" data-status="' + k + '" aria-pressed="' + (k === want) + '">' + LABEL[k] + ' <span class="count">' + n + '</span></button>';
         }).join('');
       }
@@ -148,6 +150,7 @@
       };
     }
     if (stTabs) stTabs.onclick = function (ev) { var b = ev.target.closest('[data-status]'); if (!b) return; want = b.getAttribute('data-status'); draw(shown); };
+    if (tabs) tabs.addEventListener('click', function (ev) { if (ev.target.closest('[data-season]')) { want = 'all'; draw(shown); } }); // another season: show all of it
     draw(current);
   }
 
@@ -850,7 +853,7 @@
     /* Sections that only hold "awaiting confirmation" notes get less height */
     document.querySelectorAll('.section').forEach(function (sec) {
       var real = sec.querySelector('.ach-card,.team-card,.person-card,.facility-card,.g-item,.news-card,.event-row,.result-card,.prose,.sport-card,.stat,.form,.why,.value,.timeline,.feature-list,.vm,.tier,.sponsor,.ig-card,.split');
-      sec.classList.toggle('is-pending', !!sec.querySelector('.pending-note') && !real);
+      sec.classList.toggle('is-pending', !!sec.querySelector('.pending-note, .empty') && !real);
     });
     if (CFG.sheetId) { renderStats(fresh(d.stats)); renderSponsors(fresh(d.sponsors)); renderSportsGrid(fresh(sports)); } // otherwise the page already shows the same local data
     applySettings(settings);

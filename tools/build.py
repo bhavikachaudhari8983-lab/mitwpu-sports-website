@@ -582,7 +582,7 @@ about = (page_hero("About", "About us", "We are<br><span class='grad'>Sports Sph
          '<section class="section surface"><div class="container split top"><div><span class="eyebrow reveal">Our edge</span>'
          '<h2 class="h2 reveal">What makes us<br><span class="grad">different</span></h2><p class="lead mt-2 reveal">A year-round portfolio of professionally managed events designed to inspire athletes, engage communities and create meaningful brand partnerships.</p></div>'
          '<ul class="feature-list">' + feature_items(DIFFERENT) + '</ul></div></section>'
-         '<section class="section tight"><div class="container">' + stats_html() + '</div></section>'
+         '<section class="stat-band"><div class="container">' + stats_html() + '</div></section>'
          '<section class="section"><div class="container">' + head("Our journey", "History &amp;<br><span class='grad'>milestones</span>") +
          '<ol class="timeline">' + "".join('<li class="reveal" style="--c:%s"><span class="t-year">%s</span><div><h3>%s</h3><p>%s</p></div></li>' % (c, y, t, d) for y, t, d, c in MILESTONES) + '</ol></div></section>'
          '<section class="section surface"><div class="container">' + head("Recent glory", "Hall of<br><span class='grad-champ'>fame</span>",
@@ -656,7 +656,7 @@ partner = (page_hero("Partner", "Sponsorship " + season_span(), "Partner<br><spa
            '<section class="section"><div class="container">' + head("The opportunity", "Why partner<br><span class='grad'>with us</span>",
                                                                        '<p class="lead reveal">Position your brand at the heart of passion, performance and purpose.</p>') +
            '<div class="why-grid light">' + why_cards() + '</div></div></section>'
-           '<section class="section surface tight"><div class="container">' + stats_html() + '</div></section>'
+           '<section class="stat-band"><div class="container">' + stats_html() + '</div></section>'
            '<section class="section" id="tiers"><div class="container">' + head("Partnership tiers", "Sponsorship<br><span class='grad'>packages</span>",
                                                                                  '<p class="lead reveal">Six ways to partner, from a season-long co-host to a custom package built around your goals.</p>') +
            '<div class="tiers">' + tier_cards() + '</div></div></section>'
@@ -680,8 +680,17 @@ partner = (page_hero("Partner", "Sponsorship " + season_span(), "Partner<br><spa
 page("partner.html", "Partner with us", "Sponsor Sports Sphere at MIT-WPU. Packages from Rs 20,000 to Rs 5,00,000 across Hoop It Up, the Sports Summit and more.", partner)
 
 # ================================================================= CONTACT
+CONTACT_ROUTES = [  # send people to the page that already answers them
+    ("trophy", "Register for an event", "Dates, open registrations and how to enter.", "events.html#calendar", ORANGE),
+    ("users", "Join Sports Sphere", "Volunteer or join the team behind the games.", "join.html", BLUE),
+    ("handshake", "Sponsor or partner", "Packages, benefits and the enquiry form.", "partner.html#enquire", GREEN),
+    ("clipboard", "Questions & downloads", "Trials, eligibility, rulebooks and circulars.", "faq.html", RED),
+]
 contact = (page_hero("Contact", "Get in touch", "Let's talk<br><span class='grad'>sport.</span>",
                      "Questions about events, registrations or sponsorship? Drop us a line or find us on Instagram.") +
+           '<section class="section tight routes-band"><div class="container"><h2 class="panel-title">How can we help?</h2><div class="routes">' +
+           "".join('<a class="route reveal" data-delay="%d" href="%s" style="--c:%s"><span class="fi">%s</span><b>%s</b><span>%s</span><i class="go">%s</i></a>'
+                   % (i, h, c, I[ic], t, d, ARROW) for i, (ic, t, d, h, c) in enumerate(CONTACT_ROUTES)) + '</div></div></section>' +
            '<section class="section"><div class="container split top"><div>'
            '<span class="eyebrow reveal">Find us</span><h2 class="h2 reveal">Come say<br><span class="grad">hello</span></h2><div class="contact-list">'
            '<div class="contact-item reveal" style="--c:' + ORANGE + '"><span class="fi">' + I["pin"] + '</span><div><span>Institution</span><p>MIT World Peace University, S. No. 124, Paud Road, Kothrud, Pune 411038</p></div></div>'

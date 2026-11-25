@@ -1,5 +1,5 @@
 /*
-  SPORTS SPHERE — site settings
+  MIT-WPU DEPARTMENT OF SPORTS — site settings
   ---------------------------------------------------------------
   Where should the website read its events, stats, sponsors, news and results from?
 

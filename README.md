@@ -1,18 +1,20 @@
-# Sports Sphere — MIT-WPU official sports website
+# MIT-WPU Department of Sports — official website
+
+> **Brand (25 Nov 2026):** this is the website of the **MIT-WPU Department of Sports**. Sports Sphere is the university's student sports club: it is credited on the events it helps run and on the "Join the student club" page, but it is not the site's brand.
 
 Static site (HTML + CSS + vanilla JS). There is no build step and nothing to install, so it can be hosted anywhere (university server, Netlify, GitHub Pages, etc.).
 
 ## Live site (Vercel)
 
-https://sports-sphere-website.vercel.app (Vercel project `sports-sphere-website`). The site is **not linked to the
-Sports Sphere platform yet**: `registration_portal` in `content/settings.csv` is empty, so Register buttons go to the events calendar.
+https://mitwpu-sports.vercel.app (Vercel project `mitwpu-sports-website`; the old address https://sports-sphere-website.vercel.app still works). The site is **not linked to the
+registration platform yet**: `registration_portal` in `content/settings.csv` is empty, so Register buttons go to the events calendar.
 Redeploy after any change (edits to `content/*.csv` included):
 
 ```bash
 npx vercel@latest deploy --prod
 ```
 
-**Visitor statistics:** Vercel Web Analytics is enabled for the project (no cookies, no personal data). See it in the Vercel dashboard → `sports-sphere-website` → Analytics. The loader in every page skips localhost.
+**Visitor statistics:** Vercel Web Analytics is enabled for the project (no cookies, no personal data). See it in the Vercel dashboard → `mitwpu-sports-website` → Analytics. The loader in every page skips localhost.
 
 `.vercelignore` keeps `tools/`, this README and `content/HOW-TO-UPDATE.md` off the live site.
 
@@ -58,18 +60,18 @@ python3 -m http.server 8080
 | Rule (page) | Implementation |
 |---|---|
 | Digital font is Lato (p.12) | Lato 400 / 700 / 900 from Google Fonts |
-| Colour | **Taken from the Sports Sphere logo** (the site's main brand): midnight navy (from "SPORTS"), orange→red gradient (from "SPHERE"), and the yellow, orange, red, blue and green ring for accents. Tokens are at the top of style.css |
-| Tagline | The hero headline is the logo's official tagline, "Fueling Passion. Building Champions." |
+| Colour (Established brand palette) | Primary palette 1 only, never mixed with palette 2's Deep Red: Navy Blue `#11468F`, Orange `#FFA500`, Peach `#FFE5B4`, plus their tints/shades. Primary buttons are orange with deep navy `#0B2A57` text. Tokens are at the top of style.css |
+| Headline | "Play. Compete. Represent MIT-WPU." ("Fueling Passion, Building Champions" is the Sports Sphere club's tagline and is no longer used) |
 | Headline leading 80/72, subhead 40/44 (p.14) | `.display` line-height 0.9, `.h3` 1.1 |
-| Logo always top-right (p.8) | Official logo slot is at the right end of the header on every page |
-| Logo clear space = height of "M" (p.7) | Padding and divider around the header logo |
-| Minimum digital logo size 60px (p.6) | Header logo is 64px tall at all screen sizes |
+| Logo | The site is MIT-WPU's own, so the MIT-WPU compact logo leads the header (left), followed by "Department of Sports". Logo files were cut at high resolution from the Brand Book: `assets/img/logo/mitwpu-logo-compact(-white).png`, `mitwpu-logo-master(-white).png` |
+| Logo clear space = height of "M" (p.7) | Gap and divider around the header logo |
+| Minimum digital logo size 60px (p.6) | Header logo is 62px tall at all screen sizes |
 | White logo on navy (p.5) | White version used on navy header and footer |
 | Branding in header/footer on long documents (p.6) | Logo in header and footer, wordmark in footer |
 
 ## Content source
 
-Most copy, stats, the calendar, the sports list and the sponsorship tiers come from the client's **Sponsorship Docket 2026–27**. Instagram handles come from the client's QR codes: @sportssphere__mitwpu, @hoopitup_mitwpu, @mitwpusummit.
+Most copy, stats, the calendar, the sports list and the sponsorship tiers come from the client's **Sponsorship Docket 2026–27**. Instagram handles come from the client's QR codes: @sportssphere__mitwpu (the student club), @hoopitup_mitwpu, @mitwpusummit. The docket was written for Sports Sphere; its copy is reworded so the department speaks, and testimonials are kept word for word.
 
 ### Remaining work (website)
 - [ ] Forms send nothing yet: choose a form service (e.g. Google Form / Formspree) or add `contact_email` in settings.
@@ -78,14 +80,16 @@ Most copy, stats, the calendar, the sports list and the sponsorship tiers come f
 - [ ] Photos for the remaining photo slots (home, about) and the social share image.
 
 ### Open questions for the client
-- [ ] **Join Sports Sphere page:** who can join (MIT-WPU students only?), which teams exist (the 6 on `join.html` are placeholders in `JOIN_AREAS` in `tools/build.py`), and where applications should go. Recommended: a Google Form/Sheet; put its submit URL in `data-endpoint` on the join form. Until then the form says honestly that nothing was sent.
+- [ ] **Department's own Instagram / email / phone:** the site points to the Sports Sphere club's Instagram for announcements until the department's official channels are confirmed.
+- [ ] **Vision, mission and the three values** on About came from the Sports Sphere docket ("Student driven · Uniting sports · Creating legacies"). Confirm the department's own wording.
+- [ ] **Join the student club page:** who can join (MIT-WPU students only?), which teams exist (the 6 on `join.html` are placeholders in `JOIN_AREAS` in `tools/build.py`), and where applications should go. Recommended: a Google Form/Sheet; put its submit URL in `data-endpoint` on the join form. Until then the form says honestly that nothing was sent.
 - [ ] The docket gives two different Instagram follower counts (2000+ on p.5, 685+ on p.15). Neither is shown on the site until confirmed.
 - [ ] Hoop It Up: the docket says "Invitational State-Level", but the logo says "Inter University Basketball Championship". The site uses the docket wording.
 - [ ] "Swimming (upto)" in the sports list looks cut off. The site shows "Swimming".
 - [ ] Should sponsorship **prices** be public on the website, or shared only in the docket?
 - [ ] The testimonials are unattributed ("Sponsorship Partner", "Brand Partner"). Get real names or approval to publish.
 - [ ] Sports Summit logo file, and sponsor logo files (Gold's Gym, VishwaRaj Hospital)
-- [ ] Sports Sphere email and phone (blank in the docket)
+- [ ] Department of Sports email and phone
 - [ ] Director of Sports name (Dr. Vaibhav B. Wagh per the current MIT-WPU site vs Dr. Popat Dhanve)
 
 ## TODO: content needed from MIT-WPU
@@ -93,9 +97,8 @@ Most copy, stats, the calendar, the sports list and the sponsorship tiers come f
 Everything below is a placeholder until the university sends official material.
 
 **Logo**
-- [x] Official **Sports Sphere** logo received from the client (685px PNG, 16 Nov 2026). `sports-sphere-logo.png/.webp` and `sports-sphere-badge.png/.webp` in `assets/img/logo/` are all made from it. The registration portal uses the same file (`public/brand/sports-sphere-logo.png`). The site colours come from this logo (see the top of style.css).
-- [ ] Print-quality version of the same logo (SVG, or PNG at 2000px or more, transparent background) for banners, standees and printed ID cards. 685px is enough for screens only. When it arrives, replace the files and keep the same filenames.
-- [ ] Official MIT-WPU **white** compact logo file. `assets/img/logo/mitwpu-logo-white.png` is currently made from the logo on mitwpu.edu.in (recoloured to white per brand book p.5). Replace it with the official file and keep the same filename.
+- [x] MIT-WPU compact and master logos, colour and white, cut at high resolution from the MIT-WPU Brand Book 2026 (25 Nov 2026). Shared with the registration platform (`public/brand/`).
+- [ ] Official vector (SVG/AI) MIT-WPU logo files from the university's brand team, for print. When they arrive, replace the PNGs and keep the same filenames.
 
 **Photography** (every navy block with a camera icon is a photo slot)
 - Swap `<div class="media ph ..." data-label="...">…</div>` for `<div class="media ..."><img src="assets/img/photos/NAME.webp" alt="…"></div>`

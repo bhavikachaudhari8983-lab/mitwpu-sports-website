@@ -1,5 +1,5 @@
 """
-Builds the Google Sheet template for the Sports Sphere website from the current /content tables.
+Builds the Google Sheet template for the MIT-WPU Department of Sports website from the current /content tables.
 
     python3 tools/make_sheet_template.py  [output.xlsx]
 
@@ -16,10 +16,10 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "Sports-Sphere-Website-Content.xlsx")
+OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "MITWPU-Sports-Website-Content.xlsx")
 ROWS = 400  # rows prepared with text format and dropdowns
 
-NAVY, CREAM = "151C4F", "FFF8F1"
+NAVY, CREAM = "11468F", "FFF6E6"  # MIT-WPU Navy Blue, peach tint
 STATUS = ["published", "draft", "archived"]
 COLOURS = ["yellow", "orange", "red", "blue", "green"]
 ICONS = ["football", "cricket", "basketball", "volleyball", "kabaddi", "swimming", "badminton", "tabletennis", "chess", "esports", "medal", "trophy"]
@@ -80,7 +80,7 @@ TABS = {
         "title": "File name shown on the site", "category": "e.g. Rulebook, Circular, Form", "file": "Link to the file",
         "date": "YYYY-MM-DD", "description": "Optional one line", "status": "published / draft / archived"},
         {"category": (["Rulebook", "Circular", "Form", "Schedule", "Other"], False), "status": (STATUS, True)}),
-    "results": ("Winners of Sports Sphere events (Winners board and event pages).", {
+    "results": ("Winners of MIT-WPU events (Winners board and event pages).", {
         "season": "e.g. 2026-27", "event": "Event title as in the events tab", "sport": "e.g. Basketball (Men)", "winner": "Winner",
         "runner_up": "Runner-up", "notes": "e.g. final score", "status": "published / draft / archived"},
         {"status": (STATUS, True)}),
@@ -108,7 +108,7 @@ def main():
     intro = wb.active
     intro.title = "READ ME"
     lines = [
-        ("Sports Sphere website: content", Font(bold=True, size=16, color=NAVY)),
+        ("MIT-WPU Department of Sports website: content", Font(bold=True, size=16, color=NAVY)),
         ("Each tab below feeds one part of the website. Changes appear on the site within a minute of saving.", None),
         ("", None),
         ("Rules", Font(bold=True, size=12, color=NAVY)),
@@ -140,7 +140,7 @@ def main():
             cell.fill = PatternFill("solid", fgColor=NAVY)
             cell.alignment = Alignment(vertical="center")
             if h in helps:
-                cell.comment = Comment(helps[h], "Sports Sphere")
+                cell.comment = Comment(helps[h], "MIT-WPU Sports")
             width = max([len(h)] + [len(str(ws.cell(row=i, column=j).value or "")) for i in range(2, min(ws.max_row, 30) + 1)])
             ws.column_dimensions[col].width = min(60, max(12, width + 2))
             for i in range(2, ROWS + 2):  # plain text everywhere, so dates and slugs stay exactly as typed
@@ -157,9 +157,9 @@ def main():
                 ws.add_data_validation(dv)
                 dv.add("%s2:%s%d" % (col, col, ROWS + 1))
         ws.row_dimensions[1].height = 22
-        ws.sheet_properties.tabColor = NAVY if tab in ("events", "news") else "F08A2E"
+        ws.sheet_properties.tabColor = NAVY if tab in ("events", "news") else "FFA500"
         first = ws.cell(row=1, column=1)  # the tab's purpose goes in the first heading's note (no extra columns: the site reads every column)
-        first.comment = Comment(about + "\n\n" + helps.get(head[0], ""), "Sports Sphere")
+        first.comment = Comment(about + "\n\n" + helps.get(head[0], ""), "MIT-WPU Sports")
     wb.save(OUT)
     print("Wrote", OUT)
 

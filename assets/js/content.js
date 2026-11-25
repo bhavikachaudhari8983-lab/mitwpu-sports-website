@@ -1,4 +1,4 @@
-/* Sports Sphere — live content.
+/* MIT-WPU Department of Sports — live content.
    Reads the content tables (events, stats, sponsors, news, results, settings, sports, people, achievements,
    facilities, teams, gallery) from a Google Sheet (if set in config.js) or from the /content CSV files, then renders:
    season calendar + archive, "next up", spotlight countdown, announcement bar, results, news, stats, sponsors,
@@ -9,7 +9,7 @@
 (function () {
   'use strict';
   var CFG = window.SS_CONFIG || {};
-  var COLORS = { yellow: '#F6C343', orange: '#F08A2E', red: '#D83B3B', blue: '#2F80C9', green: '#6DB33F', navy: '#151C4F' };
+  var COLORS = { yellow: '#FFA500', orange: '#FFA500', red: '#D98200', blue: '#11468F', green: '#4F7CC4', navy: '#11468F' };
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -190,7 +190,7 @@
     if (e.details) btns += '<a class="btn btn-ghost" href="' + esc(e.details) + '">Event details</a>';
     if (!btns) btns = '<a class="btn btn-ghost" href="events.html#calendar">Full calendar</a>';
     box.innerHTML = '<article class="spotlight on-dark" style="--c:' + e.colour + '">' +
-      (e.image ? '<div class="spot-img"><img src="' + esc(e.image) + '" alt="" loading="lazy"></div>' : '<div class="spot-img"><img src="assets/img/logo/sports-sphere-logo.webp" alt="" loading="lazy"></div>') +
+      (e.image ? '<div class="spot-img"><img src="' + esc(e.image) + '" alt="" loading="lazy"></div>' : '<div class="spot-img"><img src="assets/img/logo/mitwpu-logo-compact.png" alt="" loading="lazy"></div>') +
       '<div class="spot-body"><span class="spot-label">' + (st === 'live' ? '<i class="live-dot"></i>Happening now' : 'Next up · ' + esc(e.category || 'Event')) + '</span>' +
       '<h2 class="h2">' + esc(e.title) + '</h2><p class="spot-date">' + esc(r.long) + '</p><p class="spot-desc">' + esc(e.description) + '</p>' +
       '<div class="hero-actions">' + btns + '</div></div>' +
@@ -324,7 +324,7 @@
   function renderNewsPage(rows) {
     var box = document.querySelector('[data-render="news-page"]'); if (!box) return;
     var items = prepNews(listed(rows)).filter(function (n) { return n.kind === 'story'; });
-    if (!items.length) { box.innerHTML = emptyMsg('No stories yet. Event write-ups, results and achievements will appear here. Follow @sportssphere__mitwpu for the latest.'); return; }
+    if (!items.length) { box.innerHTML = emptyMsg('No stories yet. Event write-ups, results and achievements will appear here. Follow the student sports club, @sportssphere__mitwpu, for the latest.'); return; }
     var types = uniq(items, 'type'), years = uniq(items.map(function (n) { return { y: n._d ? String(n._d.getFullYear()) : '' }; }), 'y').sort().reverse();
     var f = { type: param('type'), year: '' }, q = '';
     var feat = items.filter(function (n) { return n.pin; })[0] || items[0];
@@ -450,13 +450,13 @@
     var b = ev.target.closest('[data-ics]'); if (!b) return;
     var o = JSON.parse(b.getAttribute('data-ics')), f = function (v) { return String(v || '').replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n'); };
     var now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sports Sphere//MIT-WPU//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', 'UID:' + o.id + '@sports-sphere-mitwpu', 'DTSTAMP:' + now,
+    var ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MIT-WPU Department of Sports//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', 'UID:' + o.id + '@sports.mitwpu', 'DTSTAMP:' + now,
       'DTSTART;VALUE=DATE:' + o.s, 'DTEND;VALUE=DATE:' + o.e, 'SUMMARY:' + f(o.t), 'DESCRIPTION:' + f(o.d + '\n' + location.href.split('#')[0]), 'LOCATION:' + f(o.l), 'URL:' + location.href.split('#')[0], 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
     var url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })), a = document.createElement('a');
     a.href = url; a.download = slugify(o.t) + '.ics'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   });
 
-  function setTitle(t) { document.title = t + ' | Sports Sphere · MIT-WPU'; }
+  function setTitle(t) { document.title = t + ' | MIT-WPU Department of Sports'; }
 
   /* ---------- achievements ---------- */
   function achievementCard(a) {
@@ -568,7 +568,7 @@
   function galleryItem(g, i) {
     var yt = youtubeId(g.url), url = safeUrl(g.url), thumb = imgUrl(g.thumbnail) || (yt ? 'https://img.youtube.com/vi/' + yt + '/hqdefault.jpg' : (g.type === 'video' ? '' : imgUrl(g.url)));
     var cap = [g.event, g.season && g.season.replace('-', '–')].filter(Boolean).join(' · ');
-    var inner = (thumb ? '<img src="' + esc(thumb) + '" alt="' + esc(g.title || g.caption || 'Sports Sphere') + '" loading="lazy">' : '<span class="ph-icon">' + icon('camera') + '</span>') +
+    var inner = (thumb ? '<img src="' + esc(thumb) + '" alt="' + esc(g.title || g.caption || 'MIT-WPU sports') + '" loading="lazy">' : '<span class="ph-icon">' + icon('camera') + '</span>') +
       (g.type === 'video' || yt ? '<span class="play" aria-hidden="true"></span>' : '') + '<span class="g-cap"><b>' + esc(g.title) + '</b>' + (cap ? '<small>' + esc(cap) + '</small>' : '') + '</span>';
     if (g.type === 'video' || yt || !thumb) return url ? '<a class="g-item" href="' + esc(url) + '" target="_blank" rel="noopener">' + inner + '</a>' : '';
     return '<button type="button" class="g-item" data-i="' + i + '">' + inner + '</button>';
@@ -584,7 +584,7 @@
         var few = items.slice(0, limit || 8);
         box.innerHTML = '<div class="g-grid">' + few.map(galleryItem).join('') + '</div>'; hideWrap(box, !few.length); bindLightbox(box, few); return;
       }
-      if (!items.length) { box.innerHTML = emptyMsg('Photos and videos from our events are coming soon. Follow @sportssphere__mitwpu on Instagram for match-day moments.'); return; }
+      if (!items.length) { box.innerHTML = emptyMsg('Photos and videos from our events are coming soon. Follow the student sports club, @sportssphere__mitwpu, on Instagram for match-day moments.'); return; }
       var f = { sport: param('sport'), event: param('event'), season: param('season') };
       box.innerHTML = '<div class="toolbar">' + filterSelect('sport', 'Sport', uniq(items, 'sport').sort(), f.sport) + filterSelect('event', 'Event', uniq(items, 'event').sort(), f.event) +
         filterSelect('season', 'Academic year', uniq(items, 'season').sort().reverse(), f.season) + '</div><p class="result-count" aria-live="polite" data-count></p><div class="g-grid" data-list></div>';
@@ -613,7 +613,7 @@
   /* ---------- sports grid (only re-drawn from a Google Sheet; the built page already has the CSV version) ---------- */
   function sportCard(sp, i) {
     var cat = [sp.category, yes(sp.women) ? 'women' : ''].filter(Boolean).join(' ');
-    return '<a class="sport-card" href="sport.html?s=' + esc(sp.slug) + '" data-cat="' + esc(cat) + '" style="--c:' + ['#F6C343', '#F08A2E', '#D83B3B', '#2F80C9', '#6DB33F'][i % 5] + '">' +
+    return '<a class="sport-card" href="sport.html?s=' + esc(sp.slug) + '" data-cat="' + esc(cat) + '" style="--c:' + ['#FFA500', '#FFA500', '#D98200', '#11468F', '#4F7CC4'][i % 5] + '">' +
       '<span class="tag">' + esc(sp.gender) + '</span><div class="icon">' + icon(sp.icon || sp.slug) + '</div><div><h3>' + esc(sp.name) + '</h3><p>' + esc(sp.summary) + '</p></div></a>';
   }
   function renderSportsGrid(sports) {
@@ -628,7 +628,7 @@
     var key = slugify(param('s')), sp = d.sports.filter(function (x) { return x.slug === key || slugify(x.name) === key; })[0];
     if (!sp) { box.innerHTML = notFound('Sport not found', 'This sport isn\'t on our list (yet).', 'sports.html', 'All sports'); return; }
     setTitle(sp.name);
-    var c = '#F08A2E';
+    var c = '#FFA500';
     var teams = listed(d.teams).filter(function (t) { return sameSport(t.sport, sp); });
     var coaches = listed(d.people).filter(function (p) { return /coach/i.test(p.group) && sameSport(p.sport, sp); });
     var ach = sortAch(listed(d.achievements).filter(function (a) { return sameSport(a.sport, sp); }));
@@ -680,8 +680,8 @@
     facts.push(['Venue', e.venue || 'To be announced']);
     box.innerHTML = '<section class="page-hero event-hero" data-mark="Events" style="--c:' + e.colour + '"><span class="hero-mark" aria-hidden="true">Events</span><div class="container">' + crumbs([['Events', 'events.html'], [e.title]]) +
       '<div class="event-hero-grid"><div>' + statusPill(e) + '<h1 class="h1">' + esc(e.title) + '</h1><p class="lead">' + esc(e.description) + '</p>' +
-      (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow @sportssphere__mitwpu for the announcement.</p>' : '')) +
-      (st !== 'past' ? calButtons({ title: e.title + ' · Sports Sphere', start: e.start, end: e.end, details: e.description, location: e.venue || 'MIT World Peace University, Kothrud, Pune', id: e.slug }) : '') + '</div>' +
+      (btns ? '<div class="hero-actions">' + btns + '</div>' : (st !== 'past' ? '<p class="soon mt-2">Registration opens soon. Follow the student sports club, @sportssphere__mitwpu, for the announcement.</p>' : '')) +
+      (st !== 'past' ? calButtons({ title: e.title + ' · MIT-WPU', start: e.start, end: e.end, details: e.description, location: e.venue || 'MIT World Peace University, Kothrud, Pune', id: e.slug }) : '') + '</div>' +
       (e.image ? '<div class="event-hero-img"><img src="' + esc(imgUrl(e.image)) + '" alt="' + esc(e.title) + '"></div>' : '<div class="event-date big"><strong>' + esc(r.day) + '</strong><span>' + esc(r.month) + '</span></div>') +
       '</div></div></section>' +
       '<section class="section"><div class="container split top"><div>' + sectionHead('About the event', 'Event<br><span class="grad">details</span>') +
@@ -739,12 +739,12 @@
 
   /* ---------- site search: search.html?q= ---------- */
   var PAGES = [
-    ['About Sports Sphere', 'about.html', 'vision mission objectives responsibilities leadership history milestones department'],
+    ['About the Department of Sports', 'about.html', 'vision mission objectives responsibilities leadership history milestones department'],
     ['Sports', 'sports.html', 'sports list trials team individual'], ['Events and calendar', 'events.html', 'calendar season schedule register'],
     ['Achievements', 'achievements.html', 'medals awards honours results'], ['Teams and coaches', 'teams.html', 'squads athletes coaches captains'],
     ['Facilities', 'facilities.html', 'venues infrastructure dronacharya complex grounds courts'], ['News and notices', 'news.html', 'notices trials updates announcements'],
     ['Gallery', 'gallery.html', 'photos videos pictures'], ['Partner with us', 'partner.html', 'sponsor sponsorship packages brands'],
-    ['Join Sports Sphere', 'join.html', 'volunteer join team apply'], ['FAQ & downloads', 'faq.html', 'questions help rulebook circular form download'], ['Contact', 'contact.html', 'email address location instagram']
+    ['Join the student club (Sports Sphere)', 'join.html', 'volunteer join team apply student club sports sphere'], ['FAQ & downloads', 'faq.html', 'questions help rulebook circular form download'], ['Contact', 'contact.html', 'email address location instagram']
   ];
   function renderSearch(d) {
     var box = document.querySelector('[data-render="search"]'); if (!box) return;
@@ -775,7 +775,7 @@
   }
 
   /* ---------- registration portal ---------- */
-  // settings.registration_portal = the portal's web address, e.g. https://register.sportssphere.mitwpu.edu.in
+  // settings.registration_portal = the portal's web address, e.g. https://mitwpu-sports-platform.vercel.app
   function portalBase(u) {
     u = String(u || '').trim().replace(/\/+$/, '');
     return /^https:\/\/[^\s/]+/i.test(u) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(u) ? u : '';

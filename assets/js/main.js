@@ -1,4 +1,4 @@
-/* MIT-WPU Sports Sphere — site interactions (no dependencies) */
+/* MIT-WPU Department of Sports — site interactions (no dependencies) */
 (function () {
   document.documentElement.classList.remove('no-js');
 

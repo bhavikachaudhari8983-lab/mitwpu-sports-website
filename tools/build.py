@@ -1,5 +1,5 @@
 """
-Sports Sphere site generator.
+MIT-WPU Department of Sports — official website generator.
 Edit content here, then run from the project root:
 
     python3 tools/build.py
@@ -7,8 +7,9 @@ Edit content here, then run from the project root:
 It rewrites the HTML pages (shared header/footer stay identical).
 Works on Python 3.8+ with no extra packages.
 
-Content source: Sports Sphere Sponsorship Docket 2026-27 (supplied by the client),
-plus public MIT-WPU facts where noted.
+Content source: Sponsorship Docket 2026-27 (supplied by the client; written for Sports Sphere, the student
+sports club), plus public MIT-WPU facts where noted. The site speaks for the MIT-WPU Department of Sports;
+Sports Sphere is credited only as the student club that helps run events.
 """
 import os
 
@@ -84,8 +85,9 @@ def date_of(key, fmt="long"):
     txt = {"long": lng, "short": d + " " + mth, "year": str(e["start_d"].year)}[fmt]
     return '<span data-date-of="%s" data-format="%s">%s</span>' % (key, fmt, txt)
 
-# --------------------------------------------------------------- palette (from the logo ring)
-YELLOW, ORANGE, RED, BLUE, GREEN = "#F6C343", "#F08A2E", "#D83B3B", "#2F80C9", "#6DB33F"
+# --------------------------------------------------------------- palette (MIT-WPU Brand Book 2026, palette 1 + tints/shades)
+# Names kept for history; values are MIT-WPU orange, peach-orange, dark orange, Navy Blue and a lighter navy.
+YELLOW, ORANGE, RED, BLUE, GREEN = "#FFB733", "#FFA500", "#D98200", "#11468F", "#4F7CC4"
 RING = [YELLOW, ORANGE, RED, BLUE, GREEN]
 
 # --------------------------------------------------------------- icons
@@ -142,7 +144,7 @@ def media(label, cls="", icon="camera", color=ORANGE):
 
 # --------------------------------------------------------------- social
 IG = [  # from the QR codes supplied by the client
-    ("sportssphere__mitwpu", "Sports Sphere", "Everything Sports Sphere: events, registrations, match days and results.", ORANGE),
+    ("sportssphere__mitwpu", "Sports Sphere (student club)", "The student sports club's page: event announcements, registrations, match days and results.", ORANGE),
     ("hoopitup_mitwpu", "Hoop It Up", "Fixtures, highlights and winners from our basketball championship.", BLUE),
     ("mitwpusummit", "Sports Summit", "The flagship national-level multi-sport event, Sports for Peace.", RED),
 ]
@@ -152,15 +154,20 @@ def ig_url(h):
 # --------------------------------------------------------------- layout
 # (link, label, sub-pages). Pages listed in the 4th item light up that menu entry too.
 NAV = [("index.html", "Home", [], []),
-       ("about.html", "About", [("about.html", "About Sports Sphere"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities"), ("faq.html", "FAQ &amp; downloads")], []),
+       ("about.html", "About", [("about.html", "About the department"), ("teams.html", "Teams &amp; coaches"), ("facilities.html", "Facilities"), ("faq.html", "FAQ &amp; downloads")], []),
        ("sports.html", "Sports", [], ["sport.html"]),
        ("events.html", "Events", [("events.html", "Event calendar"), ("achievements.html", "Achievements")], ["event.html"]),
        ("news.html", "News", [("news.html", "News &amp; notices"), ("gallery.html", "Gallery")], ["article.html"]),
        ("partner.html", "Partner", [], []), ("contact.html", "Contact", [], [])]
 
-WORDMARK = ('<a href="index.html" class="wordmark" aria-label="Sports Sphere home">'
-            '<img class="wm-badge" src="assets/img/logo/sports-sphere-badge.webp" alt="" width="60" height="60">'
-            '<span class="wm-text"><b>Sports</b><b>Sphere</b></span></a>')
+# MIT-WPU compact logo (cut from the Brand Book 2026) + "Department of Sports". Logo ≥ 60px tall, clear space kept by the gap.
+def wordmark(tone="color"):
+    src = "assets/img/logo/mitwpu-logo-compact%s.png" % ("-white" if tone == "white" else "")
+    return ('<a href="index.html" class="wordmark" aria-label="MIT-WPU Department of Sports home">'
+            '<img class="wm-logo" src="' + src + '" alt="MIT-WPU" width="66" height="63">'
+            '<span class="wm-rule" aria-hidden="true"></span>'
+            '<span class="wm-text"><b>Department of Sports</b><small>MIT World Peace University</small></span></a>')
+WORDMARK = wordmark()
 
 def header(active):
     cur = ' aria-current="page"'
@@ -182,19 +189,15 @@ def header(active):
             '    ' + WORDMARK + '\n'
             '    <nav id="site-nav" class="site-nav" aria-label="Primary"><ul>' + links + '</ul>'
             '<a class="nav-search" href="search.html" aria-label="Search the site"' + (cur if active == "search.html" else "") + '>' + I["search"] + '<span class="ns-label">Search</span></a>'
-            '<a class="btn btn-primary btn-sm" href="join.html"' + (cur if active == "join.html" else "") + '>Join Sports Sphere ' + ARROW + '</a></nav>\n'
-            '    <!-- Official MIT-WPU logo: always top-right (Brand Book 2026, p.8), min 60px -->\n'
-            '    <a href="https://mitwpu.edu.in" class="brand-logo" target="_blank" rel="noopener" aria-label="MIT World Peace University (opens in new tab)">'
-            '<img src="assets/img/logo/mitwpu-logo-color.webp" alt="MIT-WPU" width="65" height="62"></a>\n'
+            '<a class="btn btn-primary btn-sm" href="events.html#calendar" data-register>Register ' + ARROW + '</a></nav>\n'
             '  </div>\n</header>')
 
 FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-footer">\n  <div class="container">\n'
-          '    <div class="footer-top">\n      <div class="footer-brand">' + WORDMARK +
-          '<p class="tagline">Fueling passion. Building champions.</p>'
-          '<p>MIT-WPU\'s official sports management &amp; event platform, uniting athletes, institutions and brands through the culture of collegiate sport.</p>'
-          '<img class="footer-mit" src="assets/img/logo/mitwpu-logo-white.webp" alt="MIT-WPU" width="74" height="70"></div>\n'
+          '    <div class="footer-top">\n      <div class="footer-brand">' + wordmark("white") +
+          '<p>The Department of Sports runs university sport at MIT World Peace University, Pune: university teams, coaching, facilities, selection trials and a full season of events.</p>'
+          '<p class="footer-small">Many events are organised with <b>Sports Sphere</b>, the university\'s student sports club.</p></div>\n'
           '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="teams.html">Teams &amp; coaches</a></li><li><a href="facilities.html">Facilities</a></li><li><a href="events.html">Season calendar</a></li><li><a href="achievements.html">Achievements</a></li><li><a href="news.html">News &amp; notices</a></li><li><a href="gallery.html">Gallery</a></li></ul></div>\n'
-          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join Sports Sphere</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="faq.html">FAQ &amp; downloads</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
+          '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join the student club</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="faq.html">FAQ &amp; downloads</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
           '      <div><h4>Follow us</h4><ul class="footer-links ig-links">' +
           ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s</a></li>' % (ig_url(h), I["ig"], h) for h, _, _, _ in IG) +
           '</ul><p class="footer-small">MIT World Peace University<br>S. No. 124, Paud Road, Kothrud, Pune 411038</p>'
@@ -203,39 +206,39 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '<a href="https://www.youtube.com/c/MITWorldPeaceUniversity" target="_blank" rel="noopener" aria-label="MIT-WPU on YouTube">' + I["yt"] + '</a>'
           '<a href="https://www.linkedin.com/school/mitwpuofficial/" target="_blank" rel="noopener" aria-label="MIT-WPU on LinkedIn">' + I["li"] + '</a>'
           '</div></div>\n'
-          '    </div>\n    <div class="footer-word" aria-hidden="true">Sports Sphere</div>\n'
-          '    <div class="footer-bottom"><span>&copy; <span data-year>2026</span> Sports Sphere · MIT World Peace University</span><a href="https://mitwpu.edu.in" target="_blank" rel="noopener">www.mitwpu.edu.in</a></div>\n'
+          '    </div>\n    <div class="footer-word" aria-hidden="true">MIT-WPU Sports</div>\n'
+          '    <div class="footer-bottom"><span>&copy; <span data-year>2026</span> Department of Sports · MIT World Peace University</span><a href="https://mitwpu.edu.in" target="_blank" rel="noopener">www.mitwpu.edu.in</a></div>\n'
           '  </div>\n</footer>')
 
-SITE_URL = "https://sports-sphere-website.vercel.app/"
+SITE_URL = "https://mitwpu-sports.vercel.app/"
 
 ICONS_JSON = json.dumps({k: v for k, v in I.items() if k not in ("fb", "yt", "li")}, separators=(",", ":"))
 PAGES_BUILT = []
 # Structured data for Google: the organisation (home) and the season's events (events page) can show as rich results.
 def _ld(obj):
     return '<script type="application/ld+json">' + json.dumps(obj, ensure_ascii=False).replace("</", "<\\/") + '</script>\n'
-_ORG = {"@type": "SportsOrganization", "name": "Sports Sphere, MIT-WPU", "alternateName": "Sports Sphere", "url": SITE_URL if "SITE_URL" in dir() else "",
-        "slogan": "Fueling Passion. Building Champions.", "parentOrganization": {"@type": "CollegeOrUniversity", "name": "MIT World Peace University", "url": "https://mitwpu.edu.in"},
+_ORG = {"@type": "SportsOrganization", "name": "MIT-WPU Department of Sports", "alternateName": "MIT-WPU Sports", "url": SITE_URL if "SITE_URL" in dir() else "",
+        "parentOrganization": {"@type": "CollegeOrUniversity", "name": "MIT World Peace University", "url": "https://mitwpu.edu.in"},
         "address": {"@type": "PostalAddress", "streetAddress": "S. No. 124, Paud Road, Kothrud", "addressLocality": "Pune", "postalCode": "411038", "addressCountry": "IN"},
         "sameAs": ["https://www.instagram.com/sportssphere__mitwpu/", "https://www.instagram.com/hoopitup_mitwpu/", "https://www.instagram.com/mitwpusummit/"]}
 JSONLD = {}
-NOSCRIPT = '<noscript><p class="empty">This section needs JavaScript to load. Please enable it, or follow @sportssphere__mitwpu on Instagram.</p></noscript>'
+NOSCRIPT = '<noscript><p class="empty">This section needs JavaScript to load. Please enable it, or follow the student sports club @sportssphere__mitwpu on Instagram.</p></noscript>'
 
 def page(fname, title, desc, body):
     PAGES_BUILT.append(fname)
-    full = "Sports Sphere · MIT-WPU | Fueling Passion, Building Champions" if fname == "index.html" else title + " | Sports Sphere · MIT-WPU"
+    full = "MIT-WPU Department of Sports | MIT World Peace University, Pune" if fname == "index.html" else title + " | MIT-WPU Department of Sports"
     html = ('<!doctype html>\n<html lang="en" class="no-js">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             '<title>' + full + '</title>\n<meta name="description" content="' + desc + '">\n'
-            '<meta name="theme-color" content="#151C4F">\n<meta property="og:type" content="website">\n'
+            '<meta name="theme-color" content="#11468F">\n<meta property="og:type" content="website">\n'
             '<meta property="og:title" content="' + full + '">\n<meta property="og:description" content="' + desc + '">\n'
-            '<meta property="og:site_name" content="Sports Sphere · MIT-WPU">\n<meta property="og:url" content="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
+            '<meta property="og:site_name" content="MIT-WPU Department of Sports">\n<meta property="og:url" content="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
             '<meta property="og:image" content="' + SITE_URL + 'assets/img/og-image.png">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n'
-            '<meta property="og:image:alt" content="Sports Sphere, MIT-WPU: Fueling passion. Building champions.">\n'
+            '<meta property="og:image:alt" content="MIT-WPU Department of Sports">\n'
             '<meta name="twitter:card" content="summary_large_image">\n'
             + JSONLD.get(fname, "") +
             '<link rel="icon" href="assets/img/favicon.png" type="image/png">\n'
-            '<link rel="apple-touch-icon" href="assets/img/logo/sports-sphere-badge.png">\n'
+            '<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">\n'
             '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
             '<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">\n'
             '<link rel="canonical" href="' + SITE_URL + ("" if fname == "index.html" else fname) + '">\n'
@@ -269,11 +272,11 @@ def head(eyebrow, title_html, right=""):
     return ('<div class="section-head"><div><span class="eyebrow reveal">' + eyebrow + '</span>'
             '<h2 class="h2 reveal">' + title_html + '</h2></div>' + right + '</div>')
 
-def cta(title="Your game<br>starts here.", lead="Athlete, organiser, creator or brand: there's a place for you in the Sphere. Enter the next event, join the team behind the games, or partner with us this season."):
+def cta(title="Your game<br>starts here.", lead="Athlete, organiser, creator or brand: there's a place for you in MIT-WPU sport. Enter the next event, volunteer with the student sports club, or partner with us this season."):
     return ('<section class="cta">' + streaks("right") + '<div class="container cta-grid">'
             '<div class="reveal"><h2 class="h1">' + title + '</h2><p class="lead">' + lead + '</p>'
-            '<div class="hero-actions"><a class="btn btn-light" href="join.html">Join Sports Sphere ' + ARROW + '</a>'
-            '<a class="btn btn-ghost on-grad" href="events.html#calendar" data-register>Register for an event</a>'
+            '<div class="hero-actions"><a class="btn btn-light" href="events.html#calendar" data-register>Register for an event ' + ARROW + '</a>'
+            '<a class="btn btn-ghost on-grad" href="join.html">Join the student club</a>'
             '<a class="btn btn-ghost on-grad" href="partner.html">Become a sponsor</a></div></div>'
             '<div class="steps reveal" data-delay="1">'
             '<div class="step"><b>1</b><div><h3>Pick your event</h3><p>Trials, Hoop It Up, Sports Summit and more all season.</p></div></div>'
@@ -313,13 +316,13 @@ def sport_strip():
     return "".join('<a class="sport-chip reveal" href="sport.html?s=%s" style="--c:%s"><span class="icon">%s</span><b>%s</b></a>'
                    % (r["slug"], RING[n % 5], I.get(r.get("icon") or r["slug"], I["trophy"]), r["name"]) for n, r in enumerate(SPORTS))
 
-TAPE_ITEMS = ["Fueling passion", "Hoop It Up", "Sports Summit", "Building champions", "Football", "Cricket", "Basketball",
-              "Student driven", "Volleyball", "Kabaddi", "Uniting sports", "Badminton", "Chess", "Creating legacies", "E-Sports"]
+TAPE_ITEMS = ["MIT-WPU Sports", "Hoop It Up", "Sports Summit", "Sports for Peace", "Football", "Cricket", "Basketball",
+              "Play", "Volleyball", "Kabaddi", "Compete", "Badminton", "Chess", "Represent", "E-Sports"]
 tape_html = ''.join('<span>' + t + '</span>' for t in TAPE_ITEMS)
 TAPE = ('<div class="tape-wrap" aria-hidden="true"><div class="tape alt"><div class="tape-track" style="animation-direction:reverse">'
         + tape_html + tape_html + '</div></div><div class="tape"><div class="tape-track">' + tape_html + tape_html + '</div></div></div>')
 
-VALUES = [  # the logo ribbon
+VALUES = [  # TODO(client): these three came from the Sports Sphere club ribbon; confirm the department's own values
     ("01", "Student driven", "Built and run with students at the centre, from the organising teams to the athletes on court.", ORANGE),
     ("02", "Uniting sports", "Ten sports, every faculty, colleges from across the country. One platform that brings them all together.", BLUE),
     ("03", "Creating legacies", "Trophies, records and memories that last long after the final whistle.", GREEN),
@@ -342,7 +345,7 @@ WHY = [
     ("users", "Direct youth access", "Reach an engaged, high-energy university audience of students, athletes and campus influencers.", ORANGE),
     ("megaphone", "National visibility", "Associate with a flagship, multi-city intercollegiate portfolio spanning several sports.", RED),
     ("flag", "Brand activation on ground", "On-site branding, booths and experiential zones across match days and finals.", YELLOW),
-    ("chart", "Digital amplification", "Consistent visibility across Sports Sphere's growing Instagram community and event content.", BLUE),
+    ("chart", "Digital amplification", "Consistent visibility across MIT-WPU sport's growing Instagram community and event content.", BLUE),
     ("handshake", "Community &amp; CSR value", "Association with sportsmanship, inclusivity and causes like National Sports Day.", GREEN),
     ("cap", "Access to academia", "A direct line into MIT-WPU's student ecosystem and partner institutions across India.", ORANGE),
 ]
@@ -351,9 +354,9 @@ def why_cards(limit=None):
                    % (i % 3, c, I[ic], t, d) for i, (ic, t, d, c) in enumerate(WHY[:limit]))
 
 TIERS = [  # name, price, benefits count, description, colour, featured
-    ("Co-Host / Platinum", "&#8377;5,00,000", "12+", "The highest level of brand visibility across Sports Sphere's flagship events: prime logo placement, exclusive branding locations, stage recognition alongside dignitaries, volunteer jersey branding, premium digital promotions, exhibition space and strategic brand activations.", "#8A93B8", True),
+    ("Co-Host / Platinum", "&#8377;5,00,000", "12+", "The highest level of brand visibility across MIT-WPU's flagship sports events: prime logo placement, exclusive branding locations, stage recognition alongside dignitaries, volunteer jersey branding, premium digital promotions, exhibition space and strategic brand activations.", "#8A93B8", True),
     ("Gold", "&#8377;3,50,000", "7+", "Premium visibility across all major sporting events: prime logo placement, digital billboards, social media promotions, exhibition space and extensive on-ground branding throughout the season.", YELLOW, False),
-    ("Co-Sponsor / Principal", "&#8377;1,00,000", "6+", "Become a key event partner with prominent logo placement, exhibition space, on-ground branding, customisable activations and strong visibility across Sports Sphere events.", ORANGE, False),
+    ("Co-Sponsor / Principal", "&#8377;1,00,000", "6+", "Become a key event partner with prominent logo placement, exhibition space, on-ground branding, customisable activations and strong visibility across MIT-WPU sports events.", ORANGE, False),
     ("Silver", "&#8377;50,000", "4+", "Event branding, venue signage, posters, social media promotion and shared sponsor branding across selected sporting events.", "#A9B0C2", False),
     ("Bronze", "&#8377;25,000", "3+", "Shared sponsor branding, social media promotion, product display and visibility during selected sporting events.", "#C98A55", False),
     ("Custom", "&#8377;20,000+", "3+", "A package built around your goals and budget: choose from branding, product displays, digital promotions, activity sponsorships and custom activations.", GREEN, False),
@@ -444,7 +447,7 @@ def news_html(limit=3):
 def flagship_cards():
     return ('<div class="flagships">'
             '<a class="flag-card hoop reveal" href="events.html#hoop-it-up"><img src="assets/img/logo/hoop-it-up.webp" alt="Hoop It Up logo" width="200" height="179" loading="lazy">'
-            '<div><span class="flag-date">' + date_of("Hoop It Up", "short") + '</span><h3>Hoop It Up</h3><p>Sports Sphere\'s premier intercollegiate basketball tournament and a tribute to National Sports Day.</p>'
+            '<div><span class="flag-date">' + date_of("Hoop It Up", "short") + '</span><h3>Hoop It Up</h3><p>MIT-WPU\'s premier intercollegiate basketball tournament and a tribute to National Sports Day, organised with the Sports Sphere student club.</p>'
             '<div class="flag-stats"><span><b>160+</b> teams</span><span><b>100+</b> matches</span></div><span class="link-arrow">Explore ' + ARROW + '</span></div></a>'
             '<a class="flag-card summit-card reveal" data-delay="1" href="events.html#summit"><div class="summit-mark"><small>MIT-WPU</small>SUMMIT<em>' + date_of("Sports Summit", "year") + '</em></div>'
             '<div><span class="flag-date">' + date_of("Sports Summit", "short") + '</span><h3>Sports Summit</h3><p>Our flagship national-level multi-sport event, built on the philosophy of Sports for Peace.</p>'
@@ -493,20 +496,20 @@ def field(id_, label, inner, full=False):
     return '<div class="field%s"><label for="%s">%s</label>%s</div>' % (" full" if full else "", id_, label, inner)
 
 _ORG["url"] = SITE_URL
-_ORG["logo"] = SITE_URL + "assets/img/logo/sports-sphere-logo.png"
+_ORG["logo"] = SITE_URL + "assets/img/logo/mitwpu-logo-compact.png"
 JSONLD["index.html"] = _ld(dict({"@context": "https://schema.org"}, **_ORG))
 JSONLD["events.html"] = _ld({"@context": "https://schema.org", "@graph": [{
     "@type": "SportsEvent", "name": e["title"], "startDate": e["start_d"].isoformat(), "endDate": e["end_d"].isoformat(),
     "description": e.get("description", ""), "eventStatus": "https://schema.org/EventScheduled", "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
     "url": SITE_URL + "event.html?e=" + event_slug(e), "image": SITE_URL + "assets/img/og-image.png",
     "location": {"@type": "Place", "name": e.get("venue") or "MIT World Peace University", "address": {"@type": "PostalAddress", "streetAddress": "S. No. 124, Paud Road, Kothrud", "addressLocality": "Pune", "postalCode": "411038", "addressCountry": "IN"}},
-    "organizer": {"@type": "SportsOrganization", "name": "Sports Sphere, MIT-WPU", "url": SITE_URL}} for e in EVENTS if e["end_d"] >= BUILD_DAY]})
+    "organizer": {"@type": "SportsOrganization", "name": "MIT-WPU Department of Sports", "url": SITE_URL}} for e in EVENTS if e["end_d"] >= BUILD_DAY]})
 
 # ================================================================= HOME
 home = ('<section class="hero"><div class="container hero-grid"><div class="hero-copy">'
-        '<span class="eyebrow reveal">MIT-WPU\'s Sports Management &amp; Event Platform</span>'
-        '<h1 class="display reveal" data-delay="1">Fueling<br><span class="grad">passion.</span><br>Building<br><span class="grad-champ">champions.</span></h1>'
-        '<p class="lead reveal" data-delay="2">Sports Sphere unites athletes, institutions and brands through the culture of collegiate sport, with professionally managed events all season long.</p>'
+        '<span class="eyebrow reveal">MIT World Peace University · Department of Sports</span>'
+        '<h1 class="display reveal" data-delay="1">Play.<br><span class="grad">Compete.</span><br>Represent<br><span class="grad-champ">MIT-WPU.</span></h1>'
+        '<p class="lead reveal" data-delay="2">The Department of Sports runs university sport at MIT-WPU: selection trials, university teams, coaching, facilities and a full season of events, from Hoop It Up to the national-level Sports Summit.</p>'
         '<div class="hero-actions reveal" data-delay="3"><a class="btn btn-primary" href="events.html">See the season ' + ARROW + '</a>'
         '<a class="btn btn-ghost" href="partner.html">Partner with us</a></div>'
         '<div class="chips reveal" data-delay="3">'
@@ -514,16 +517,16 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
         '<span class="chip"><i style="background:' + RED + '"></i><b>26</b>International medals</span>'
         '<span class="chip"><i style="background:' + BLUE + '"></i><b>160+</b>Teams at Hoop It Up</span></div></div>'
         '<div class="hero-visual reveal" data-delay="1"><div class="hero-logo">' + streaks("right") +
-        '<img src="assets/img/logo/sports-sphere-logo.webp" fetchpriority="high" alt="Sports Sphere, MIT-WPU. Fueling passion, building champions. Student driven, uniting sports, creating legacies." width="617" height="617"></div></div>'
+        '<img src="assets/img/logo/mitwpu-logo-compact.png" fetchpriority="high" alt="MIT-WPU, MIT World Peace University" width="640" height="610"></div></div>'
         '</div></section>\n'
         + TAPE +
         '<section class="section spot-section" data-spotlight-wrap hidden><div class="container" data-render="spotlight"></div></section>\n' +
         '\n<section class="section"><div class="container"><div class="split">'
         '<div><span class="eyebrow reveal">Who we are</span><h2 class="h2 reveal">More than<br><span class="grad">a game.</span></h2>'
-        '<div class="prose mt-2 reveal"><p class="lead">Sports Sphere is MIT-WPU\'s official sports management platform, delivering professionally managed events that promote excellence, engagement and the spirit of sport.</p>'
+        '<div class="prose mt-2 reveal"><p class="lead">The Department of Sports is the home of sport at MIT-WPU, delivering professionally managed events that promote excellence, engagement and the spirit of sport.</p>'
         '<p>From selection trials to the national-level Sports Summit, we run a year-round calendar backed by state-of-the-art infrastructure and professional coaching, nurturing athletes through training and competition.</p></div>'
         '<a class="link-arrow mt-3 reveal" href="about.html">Our story ' + ARROW + '</a></div>'
-        '<div class="media-wrap reveal" data-delay="1">' + streaks("right") + media("Match day · Sports Sphere photography", "tall slant", "camera", ORANGE) +
+        '<div class="media-wrap reveal" data-delay="1">' + streaks("right") + media("Match day photography", "tall slant", "camera", ORANGE) +
         '<div class="stamp"><strong>26</strong><span>International medals</span></div></div></div>'
         '</div></section>\n'
         '<section class="stat-band"><div class="container">' + stats_html() + '</div></section>\n'
@@ -557,21 +560,21 @@ home = ('<section class="hero"><div class="container hero-grid"><div class="hero
         + '<div data-render="gallery" data-limit="8"></div></div></section>\n'
         '<section class="section cream tight"><div class="container">' + head("Follow the action", "Join us on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>\n'
         + cta())
-page("index.html", "Home", "Sports Sphere is MIT-WPU's official sports management and event platform, home of Hoop It Up and the Sports Summit. Fueling passion, building champions.", home)
+page("index.html", "Home", "The MIT-WPU Department of Sports: university teams, selection trials, facilities and events at MIT World Peace University, Pune, home of Hoop It Up and the Sports Summit.", home)
 
 # ================================================================= ABOUT
-about = (page_hero("About", "About us", "We are<br><span class='grad'>Sports Sphere.</span>",
-                   "MIT-WPU's official sports management and event platform, uniting athletes, institutions and brands through the culture of collegiate sport.") +
+about = (page_hero("About", "About us", "We are the<br><span class='grad'>Department of Sports.</span>",
+                   "MIT-WPU's Department of Sports: university teams, coaching, facilities and a full season of events, uniting athletes, institutions and brands through collegiate sport.") +
          '<section class="section"><div class="container split">'
          '<div><span class="eyebrow reveal">Our story</span><h2 class="h2 reveal">Sport is in<br><span class="grad">our DNA</span></h2>'
          '<div class="prose mt-2 reveal"><p class="lead">MIT World Peace University is a leading multidisciplinary university committed to academic excellence and holistic student development.</p>'
-         '<p>Sports Sphere is its official sports management platform. We deliver professionally managed events that promote excellence, engagement and the spirit of sport, from university selection trials to the national-level Sports Summit.</p>'
+         '<p>The Department of Sports runs sport at the university. We deliver professionally managed events that promote excellence, engagement and the spirit of sport, from university selection trials to the national-level Sports Summit.</p><p>Many of our events are organised with <strong>Sports Sphere</strong>, the university\'s student sports club, whose volunteers help run match days, media, hospitality and fan engagement.</p>'
          '<p>Our athletes train year-round with state-of-the-art infrastructure and professional coaching. Today <strong>12 international players</strong> represent India across multiple sports, with <strong>26 international medals</strong> between them.</p></div></div>'
          '<div class="media-wrap reveal" data-delay="1">' + streaks("right") + media("Team photo", "tall slant", "camera", BLUE) + '<div class="stamp"><strong>12</strong><span>International players</span></div></div>'
          '</div></section>'
          '<section class="section surface"><div class="container split top"><div><span class="eyebrow reveal">What we do</span>'
          '<h2 class="h2 reveal">The department\'s<br><span class="grad">responsibilities</span></h2>'
-         '<p class="lead mt-2 reveal">Sports Sphere runs sport at MIT-WPU all year: for the university\'s athletes, its students and staff, and the colleges that come to compete.</p></div>'
+         '<p class="lead mt-2 reveal">The Department of Sports runs sport at MIT-WPU all year: for the university\'s athletes, its students and staff, and the colleges that come to compete.</p></div>'
          '<ul class="feature-list">' + feature_items(RESPONSIBILITIES) + '</ul></div></section>'
          '<section class="section night"><div class="container on-dark"><div class="vm">'
          '<div class="vm-card reveal" style="--c:' + YELLOW + '"><span class="fi">' + I["eye"] + '</span><span class="eyebrow">Our vision</span><p>To become India\'s leading university sports platform, fostering competitive excellence, encouraging holistic development, and building long-term partnerships with institutions and industry leaders.</p></div>'
@@ -593,11 +596,11 @@ about = (page_hero("About", "About us", "We are<br><span class='grad'>Sports Sph
          '<h3 class="h3 mt-3">Sports Office: coordinators &amp; core team</h3>'
          '<div class="people-grid mt-2" data-render="people" data-group="coordinator,core team" data-empty="The Sports Office team, its coordinators and the organisational structure will be published here once confirmed by the department."></div>'
          '<p class="mt-3"><a class="link-arrow" href="teams.html">Coaches and university teams ' + ARROW + '</a></p></div></section>' + cta())
-page("about.html", "About us", "About Sports Sphere, MIT-WPU's official sports management and event platform: our vision, mission, values and track record.", about)
+page("about.html", "About us", "About the MIT-WPU Department of Sports: our vision, mission, values, track record and people.", about)
 
 # ================================================================= SPORTS
 sports = (page_hero("Sports", "Sports list", "Find your<br><span class='grad'>game.</span>",
-                    "Ten sports across the Sports Sphere event portfolio, with men's and women's competition. Pick one to see its teams, venue, achievements and events.") +
+                    "Ten sports across the MIT-WPU sports calendar, with men's and women's competition. Pick one to see its teams, venue, achievements and events.") +
           '<section class="section"><div class="container">'
           '<div class="filters" data-filter-group="#sports-list" role="group" aria-label="Filter sports">'
           '<button class="filter-btn" data-filter="all" aria-pressed="true">All</button><button class="filter-btn" data-filter="team" aria-pressed="false">Team</button>'
@@ -613,7 +616,7 @@ sports = (page_hero("Sports", "Sports list", "Find your<br><span class='grad'>ga
           '<a class="btn btn-primary mt-3 reveal" href="events.html#calendar">See trial dates ' + ARROW + '</a></div>'
           '<div class="reveal" data-delay="1"><div data-render="faq" data-category="Trials &amp; teams">' + NOSCRIPT + '</div><a class="link-arrow mt-2" href="faq.html">All questions ' + ARROW + '</a>'
           '</div></div></section>' + cta())
-page("sports.html", "Sports", "The sports covered by Sports Sphere at MIT-WPU: football, cricket, basketball, volleyball, kabaddi, swimming, badminton, table tennis, chess and e-sports.", sports)
+page("sports.html", "Sports", "The sports offered by the MIT-WPU Department of Sports: football, cricket, basketball, volleyball, kabaddi, swimming, badminton, table tennis, chess and e-sports.", sports)
 
 # ================================================================= EVENTS
 events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='grad'>on.</span>",
@@ -623,7 +626,7 @@ events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='g
           '<div class="hoop-body on-dark"><span class="eyebrow">Flagship · ' + date_of("Hoop It Up") + '</span><h2 class="h1">Hoop It Up</h2>'
           '<p class="sub">Invitational State-Level Basketball Tournament</p>'
           '<p>Hoop It Up began as a tribute to National Sports Day, celebrated on the birth anniversary of the legendary Indian hockey icon Major Dhyan Chand: a day to honour sportsmanship, dedication and athletic excellence.</p>'
-          '<p>It has grown into a grand affair. It is now Sports Sphere\'s premier intercollegiate basketball tournament, with high-energy competition and a spectator experience that celebrates basketball culture on campus.</p>'
+          '<p>It has grown into a grand affair. It is now MIT-WPU\'s premier intercollegiate basketball tournament, organised with the Sports Sphere student club, with high-energy competition and a spectator experience that celebrates basketball culture on campus.</p>'
           '<div class="flag-stats big"><span><b>160+</b> teams</span><span><b>100+</b> matches</span></div>'
           '<div class="hero-actions"><a class="btn btn-primary" href="' + ig_url("hoopitup_mitwpu") + '" target="_blank" rel="noopener">@hoopitup_mitwpu ' + ARROW + '</a></div></div>'
           '</article></div></section>'
@@ -638,16 +641,16 @@ events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='g
           '<div class="filters" data-render="season-tabs" role="group" aria-label="Choose season"></div>'
           '<div class="filters status-filters" data-render="status-tabs" role="group" aria-label="Show events"></div>'
           '<div class="event-list" data-render="calendar">' + event_rows([e for e in EVENTS if e["season"] == CURRENT_SEASON]) + '</div></div></section>'
-          '<section class="section" id="results" data-results-wrap><div class="container">' + head("Results", "Winners<br><span class='grad-champ'>board</span>", '<p class="lead reveal">Champions of every Sports Sphere event, season after season.</p>') + '<div class="results" data-render="results"><p class="empty">Winners are posted here after every event.</p></div></div></section>'
+          '<section class="section" id="results" data-results-wrap><div class="container">' + head("Results", "Winners<br><span class='grad-champ'>board</span>", '<p class="lead reveal">Champions of every MIT-WPU event, season after season.</p>') + '<div class="results" data-render="results"><p class="empty">Winners are posted here after every event.</p></div></div></section>'
           '<section class="section surface" id="register"><div class="container split top"><div>'
           '<span class="eyebrow reveal">How to register</span><h2 class="h2 reveal">Three steps<br><span class="grad">to game day</span></h2>'
-          '<p class="lead mt-2 reveal">When registration opens for an event, a <b>Register</b> button appears next to it in the calendar above. Registration details for each event are also shared on @sportssphere__mitwpu.</p>'
+          '<p class="lead mt-2 reveal">When registration opens for an event, a <b>Register</b> button appears next to it in the calendar above. Registration details for each event are also shared on the student sports club\'s Instagram, @sportssphere__mitwpu.</p>'
           '<a class="btn btn-primary mt-3 reveal" href="#calendar">See open events ' + ARROW + '</a></div>'
           '<ul class="feature-list">' + feature_items([("clipboard", "1. Find your event", "Pick an event in the calendar. If registration is open, you\'ll see a Register button.", ORANGE),
                                                        ("users", "2. Register and get verified", "The button opens the registration form for that event. Fill it in before registration closes.", BLUE),
                                                        ("trophy", "3. Get ready", "Watch for your confirmation, then follow @sportssphere__mitwpu for fixtures, results and live updates.", GREEN)]) + '</ul>'
           '</div></section>')
-page("events.html", "Events", "Sports Sphere's season at MIT-WPU: Hoop It Up, the Sports Summit, interdepartmental sports, marathon, awards and more.", events)
+page("events.html", "Events", "The MIT-WPU sports season: Hoop It Up, the Sports Summit, interdepartmental sports, marathon, awards and more.", events)
 
 # ================================================================= PARTNER
 TIER_OPTS = "".join('<option>%s</option>' % t[0] for t in TIERS)
@@ -677,12 +680,12 @@ partner = (page_hero("Partner", "Sponsorship " + season_span(), "Partner<br><spa
            '<button class="btn btn-primary" type="submit">Send enquiry ' + ARROW + '</button>'
            '<div class="form-success" role="status">Thank you! Our partnerships team will be in touch shortly.</div>'
            '</form></div></div></section>')
-page("partner.html", "Partner with us", "Sponsor Sports Sphere at MIT-WPU. Packages from Rs 20,000 to Rs 5,00,000 across Hoop It Up, the Sports Summit and more.", partner)
+page("partner.html", "Partner with us", "Sponsor MIT-WPU sport. Packages from Rs 20,000 to Rs 5,00,000 across Hoop It Up, the Sports Summit and more.", partner)
 
 # ================================================================= CONTACT
 CONTACT_ROUTES = [  # send people to the page that already answers them
     ("trophy", "Register for an event", "Dates, open registrations and how to enter.", "events.html#calendar", ORANGE),
-    ("users", "Join Sports Sphere", "Volunteer or join the team behind the games.", "join.html", BLUE),
+    ("users", "Join the student club", "Volunteer with Sports Sphere, the student sports club behind match days.", "join.html", BLUE),
     ("handshake", "Sponsor or partner", "Packages, benefits and the enquiry form.", "partner.html#enquire", GREEN),
     ("clipboard", "Questions & downloads", "Trials, eligibility, rulebooks and circulars.", "faq.html", RED),
 ]
@@ -696,22 +699,22 @@ contact = (page_hero("Contact", "Get in touch", "Let's talk<br><span class='grad
            '<div class="contact-item reveal" style="--c:' + ORANGE + '"><span class="fi">' + I["pin"] + '</span><div><span>Institution</span><p>MIT World Peace University, S. No. 124, Paud Road, Kothrud, Pune 411038</p></div></div>'
            + ''.join('<div class="contact-item reveal" style="--c:%s"><span class="fi">%s</span><div><span>Instagram · %s</span><a href="%s" target="_blank" rel="noopener">@%s</a></div></div>'
                      % (c, I["ig"], name, ig_url(h), h) for h, name, _, c in IG) +
-           '<!-- TODO: official Sports Sphere email and phone (docket leaves them blank) -->'
+           '<!-- TODO: official Department of Sports email and phone (not yet supplied) -->'
            '<div class="contact-item reveal" style="--c:' + GREEN + '"><span class="fi">' + I["mail"] + '</span><div><span>Email</span><p data-render="email">Coming soon</p></div></div>'
            '</div></div>'
            '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Send us a message</h3><form class="form" data-validate novalidate data-subject="Website message" data-pending="Thanks! Our contact inbox is being connected. In the meantime, message @sportssphere__mitwpu on Instagram and we will reply there.">'
            + field("c-name", "Full name", '<input id="c-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
            + field("c-email", "Email", '<input id="c-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
-           + field("c-topic", "Topic", '<select id="c-topic" name="topic" required><option value="">Choose a topic</option><option>Event registration</option><option>Joining Sports Sphere</option><option>Hoop It Up</option><option>Sports Summit</option><option>Sponsorship &amp; partnerships</option><option>Media &amp; press</option><option>Something else</option></select><span class="err">Please choose a topic.</span>', True)
+           + field("c-topic", "Topic", '<select id="c-topic" name="topic" required><option value="">Choose a topic</option><option>Event registration</option><option>Joining the student club (Sports Sphere)</option><option>Hoop It Up</option><option>Sports Summit</option><option>Sponsorship &amp; partnerships</option><option>Media &amp; press</option><option>Something else</option></select><span class="err">Please choose a topic.</span>', True)
            + field("c-msg", "Message", '<textarea id="c-msg" name="message" required></textarea><span class="err">Please write a message.</span>', True) +
            '<button class="btn btn-primary" type="submit">Send it ' + ARROW + '</button>'
            '<div class="form-success" role="status">Message received. We\'ll get back to you soon.</div></form></div>'
            '</div></section>'
            '<section class="section" style="padding-top:0"><div class="container reveal"><iframe class="map-frame" title="Map: MIT World Peace University, Kothrud, Pune" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=MIT+World+Peace+University,+Kothrud,+Pune&amp;output=embed"></iframe></div></section>')
-page("contact.html", "Contact", "Contact Sports Sphere at MIT World Peace University, Pune: events, registrations and sponsorship.", contact)
+page("contact.html", "Contact", "Contact the MIT-WPU Department of Sports, Pune: events, registrations and sponsorship.", contact)
 
 # ================================================================= JOIN
-# "Join Sports Sphere": for students who want to be part of the team behind the games (not athletes:
+# "Join the student club" (Sports Sphere): for students who want to be part of the team behind the games (not athletes:
 # athletes register for each tournament from the events calendar). Separate from the tournament platform.
 # PROVISIONAL: the list of teams below is a placeholder until the Sports Office confirms who can join and how.
 JOIN_AREAS = [
@@ -726,8 +729,8 @@ JOIN_PENDING = ("Thanks! Applications aren't being collected online yet, so this
                 "Please message @sportssphere__mitwpu on Instagram with your name and the team you'd like to join, and we'll get back to you.")
 YEARS = ["1st year", "2nd year", "3rd year", "4th year", "5th year", "Postgraduate", "Other"]
 
-join = (page_hero("Join", "Join Sports Sphere", "Be part of<br><span class='grad'>the team.</span>",
-                  "Not on the field? Sports Sphere runs on students who organise, film, design and host. Join the team behind the games.") +
+join = (page_hero("Join", "Join the student club", "Be part of<br><span class='grad'>the team.</span>",
+                  "Not on the field? Sports Sphere, MIT-WPU's student sports club, runs on students who organise, film, design and host. Join the team behind the games.") +
         '<section class="section"><div class="container">' + head("Ways to get involved", "Find your<br><span class='grad'>role</span>",
                                                                   '<p class="lead reveal">Choose the team that suits you. No experience needed for most roles, just energy and time.</p>') +
         '<div class="why-grid light">' + "".join('<div class="why reveal" data-delay="%d" style="--c:%s"><span class="fi">%s</span><h3>%s</h3><p>%s</p></div>'
@@ -735,12 +738,12 @@ join = (page_hero("Join", "Join Sports Sphere", "Be part of<br><span class='grad
         '<section class="section surface" id="apply"><div class="container split top"><div>'
         '<span class="eyebrow reveal">How it works</span><h2 class="h2 reveal">Three steps<br><span class="grad">to the team</span></h2>'
         '<ul class="feature-list">' + feature_items([("clipboard", "1. Apply", "Fill in the form. It takes about two minutes.", ORANGE),
-                                                     ("mail", "2. Hear back", "The Sports Sphere team reviews applications and contacts you by email or phone.", BLUE),
+                                                     ("mail", "2. Hear back", "The Sports Sphere student club reviews applications and contacts you by email or phone.", BLUE),
                                                      ("flag", "3. Get started", "Meet the team and help out at your first event.", GREEN)]) + '</ul>'
         '<div class="note-card reveal"><h3>Want to compete?</h3><p>This form is for the team behind the games. Athletes register for each tournament separately, from the '
         '<a href="events.html#calendar">events calendar</a>.</p></div></div>'
         '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Apply to join</h3>'
-        '<form class="form" data-validate novalidate data-subject="Join Sports Sphere application" data-pending="' + JOIN_PENDING + '">'
+        '<form class="form" data-validate novalidate data-subject="Student club (Sports Sphere) application" data-pending="' + JOIN_PENDING + '">'
         + field("j-name", "Full name", '<input id="j-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
         + field("j-email", "Email", '<input id="j-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
         + field("j-phone", "Mobile number", '<input id="j-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[+]?[0-9 ]{10,15}" required><span class="err">Please enter a 10-digit mobile number.</span>')
@@ -750,17 +753,17 @@ join = (page_hero("Join", "Join Sports Sphere", "Be part of<br><span class='grad
         + field("j-area", "Team you'd like to join", '<select id="j-area" name="team" required><option value="">Choose a team</option>' + "".join("<option>%s</option>" % t for _, t, _, _ in JOIN_AREAS) + '<option>Not sure yet</option></select><span class="err">Please choose a team.</span>', True)
         + field("j-msg", "About you", '<textarea id="j-msg" name="about" placeholder="Your skills, past experience, or why you want to join." required></textarea><span class="err">Please tell us a little about yourself.</span>', True) +
         '<div class="field full check"><div class="check-row"><input id="j-consent" name="consent" type="checkbox" value="Yes" required>'
-        '<label for="j-consent">Sports Sphere may contact me about this application.</label></div><span class="err">Please tick this so we can contact you.</span></div>'
+        '<label for="j-consent">The Department of Sports and the Sports Sphere student club may contact me about this application.</label></div><span class="err">Please tick this so we can contact you.</span></div>'
         '<button class="btn btn-primary" type="submit">Send application ' + ARROW + '</button>'
         '<div class="form-success" role="status">Application received. We\'ll be in touch soon.</div></form></div>'
         '</div></section>')
-page("join.html", "Join Sports Sphere", "Join the student team behind Sports Sphere at MIT-WPU: event management, media, design, marketing, sponsorship and volunteering.", join)
+page("join.html", "Join the student club", "Join Sports Sphere, the student sports club at MIT-WPU: event management, media, design, marketing, sponsorship and volunteering.", join)
 
 # ================================================================= ACHIEVEMENTS
 achievements = (page_hero("Achievements", "Hall of fame", "Built for<br><span class='grad-champ'>glory.</span>",
                           "Team and individual achievements of MIT-WPU's athletes: competitions, medals, awards and recognitions. Filter by sport and year.") +
                 '<section class="section"><div class="container"><div data-render="achievements">' + NOSCRIPT + '</div>'
-                '<p class="footnote mt-3">Only achievements confirmed by the Sports Office are listed. Results from Sports Sphere\'s own events are on the <a href="events.html#results">winners board</a>.</p></div></section>' + cta())
+                '<p class="footnote mt-3">Only achievements confirmed by the Sports Office are listed. Results from MIT-WPU\'s own events are on the <a href="events.html#results">winners board</a>.</p></div></section>' + cta())
 page("achievements.html", "Achievements", "Achievements of MIT-WPU athletes and teams: medals, competitions, awards and recognitions, by sport and year.", achievements)
 
 # ================================================================= TEAMS & COACHES
@@ -783,7 +786,7 @@ page("facilities.html", "Facilities", "Sports facilities at MIT-WPU, Pune, inclu
 
 # ================================================================= NEWS
 news = (page_hero("News", "News &amp; notices", "Fresh off<br><span class='grad'>the field.</span>",
-                  "Notices, selection trials, circulars, event updates, results and stories from Sports Sphere.") +
+                  "Notices, selection trials, circulars, event updates, results and stories from the Department of Sports.") +
         '<section class="section tight" id="notices"><div class="container"><div class="notice-head"><div><span class="eyebrow reveal">Notice board</span>'
         '<h2 class="h2 reveal">Don\'t miss<br><span class="grad">a deadline</span></h2></div>'
         '<p class="lead reveal">Selection trials, circulars and schedule changes. Notices move to the archive once their deadline passes.</p></div>'
@@ -791,14 +794,14 @@ news = (page_hero("News", "News &amp; notices", "Fresh off<br><span class='grad'
         '<section class="section surface" id="stories"><div class="container">' + head("Stories", "News &amp;<br><span class='grad'>stories</span>") +
         '<div data-render="news-page">' + NOSCRIPT + '</div></div></section>'
         '<section class="section cream"><div class="container">' + head("Follow the action", "Live updates on<br><span class='grad'>Instagram</span>") + ig_cards() + '</div></section>')
-page("news.html", "News & notices", "News, notices, selection trials, event updates and results from Sports Sphere at MIT-WPU.", news)
+page("news.html", "News & notices", "News, notices, selection trials, event updates and results from the MIT-WPU Department of Sports.", news)
 
 # ================================================================= GALLERY
 gallery = (page_hero("Gallery", "Photos &amp; videos", "Moments<br><span class='grad'>that matter.</span>",
-                     "Photos and videos from Sports Sphere events, by sport, event and academic year.") +
+                     "Photos and videos from MIT-WPU sports events, by sport, event and academic year.") +
            '<section class="section"><div class="container"><div data-render="gallery">' + NOSCRIPT + '</div></div></section>'
            '<section class="section cream"><div class="container">' + head("More on Instagram", "Follow<br><span class='grad'>the action</span>") + ig_cards() + '</div></section>')
-page("gallery.html", "Gallery", "Photos and videos from Sports Sphere events at MIT-WPU, by sport, event and academic year.", gallery)
+page("gallery.html", "Gallery", "Photos and videos from MIT-WPU sports events, by sport, event and academic year.", gallery)
 
 # ================================================================= FAQ & DOWNLOADS
 faq = (page_hero("FAQ", "FAQ &amp; downloads", "Got a<br><span class='grad'>question?</span>",
@@ -808,20 +811,20 @@ faq = (page_hero("FAQ", "FAQ &amp; downloads", "Got a<br><span class='grad'>ques
        '<div data-render="faq">' + NOSCRIPT + '</div></div></section>'
        '<section class="section surface" id="downloads"><div class="container">' + head("Downloads", "Rulebooks, circulars<br><span class='grad'>&amp; forms</span>") +
        '<div data-render="downloads">' + NOSCRIPT + '</div></div></section>' + cta())
-page("faq.html", "FAQ & downloads", "Frequently asked questions about Sports Sphere at MIT-WPU, and rulebooks, circulars and forms to download.", faq)
+page("faq.html", "FAQ & downloads", "Frequently asked questions about sport at MIT-WPU, and rulebooks, circulars and forms to download.", faq)
 
 # ================================================================= SEARCH
 search = (page_hero("Search", "Search", "Find<br><span class='grad'>anything.</span>", "Search sports, events, achievements, news, facilities, teams and people.") +
           '<section class="section"><div class="container narrow"><div data-render="search"><label class="search-field big"><span class="visually-hidden">Search the site</span>'
           '<input type="search" placeholder="Try &quot;basketball&quot;, &quot;trials&quot; or &quot;Summit&quot;" autofocus></label><div data-results></div></div>' + NOSCRIPT + '</div></section>')
-page("search.html", "Search", "Search the Sports Sphere website.", search)
+page("search.html", "Search", "Search the MIT-WPU Department of Sports website.", search)
 
 # ================================================================= DETAIL PAGES (filled in by content.js from the tables)
 page("sport.html", "Sport", "A sport at MIT-WPU: teams, coaches, venue, achievements and events.",
      '<div data-render="sport-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
-page("article.html", "News", "News and notices from Sports Sphere at MIT-WPU.",
+page("article.html", "News", "News and notices from the MIT-WPU Department of Sports.",
      '<div data-render="article"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
-page("event.html", "Event", "A Sports Sphere event at MIT-WPU: dates, venue, results and photos.",
+page("event.html", "Event", "An MIT-WPU sports event: dates, venue, results and photos.",
      '<div data-render="event-detail"><section class="page-hero"><div class="container"><p class="lead">Loading…</p>' + NOSCRIPT + '</div></section></div>')
 
 # ================================================================= 404 (Vercel serves 404.html for unknown addresses)
@@ -833,7 +836,7 @@ nf = ('<section class="page-hero nf-hero" data-mark="404">' + streaks("right") +
       '<div class="nf-links">' + "".join('<a class="sport-chip" href="%s" style="--c:%s"><span class="icon">%s</span><b>%s</b></a>' % (h, c, I[ic], t) for h, t, ic, c in
           [("index.html", "Home", "flag", ORANGE), ("events.html", "Events", "trophy", BLUE), ("sports.html", "Sports", "football", GREEN),
            ("news.html", "News", "megaphone", RED), ("contact.html", "Contact", "mail", YELLOW)]) + '</div></div></section>')
-page("404.html", "Page not found", "This page doesn't exist on the Sports Sphere website.", nf)
+page("404.html", "Page not found", "This page doesn't exist on the MIT-WPU Department of Sports website.", nf)
 _p = os.path.join(ROOT, "404.html")  # links must work from any depth (e.g. /old/page): resolve them from the site root
 _h = open(_p, encoding="utf-8").read()
 _h = re.sub(r'<link rel="canonical"[^>]*>\n', "", _h).replace("<head>\n", '<head>\n<meta name="robots" content="noindex">\n', 1)

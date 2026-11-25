@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /content/
-Sitemap: https://sports-sphere-website.vercel.app/sitemap.xml
+Sitemap: https://mitwpu-sports.vercel.app/sitemap.xml

@@ -1,4 +1,4 @@
-# How to update the Sports Sphere website
+# How to update the MIT-WPU Department of Sports website
 
 You don't need to know any code. Everything that changes during the year lives in **one Google Sheet**. Change the sheet, refresh the website, and the change is live.
 
@@ -6,9 +6,9 @@ You don't need to know any code. Everything that changes during the year lives i
 
 ## One-time setup (done once by whoever manages the website, about 10 minutes)
 
-You'll have a ready-made file: **Sports-Sphere-Website-Content.xlsx**. It already has all 14 tabs (`events`, `news`, `sports`, `achievements`, `people`, `teams`, `facilities`, `gallery`, `faq`, `downloads`, `results`, `sponsors`, `stats`, `settings`), the current content, dropdowns for fixed choices, and a note on every column heading. (A developer can rebuild it at any time with `python3 tools/make_sheet_template.py`.)
+You'll have a ready-made file: **MITWPU-Sports-Website-Content.xlsx**. It already has all 14 tabs (`events`, `news`, `sports`, `achievements`, `people`, `teams`, `facilities`, `gallery`, `faq`, `downloads`, `results`, `sponsors`, `stats`, `settings`), the current content, dropdowns for fixed choices, and a note on every column heading. (A developer can rebuild it at any time with `python3 tools/make_sheet_template.py`.)
 
-1. Open **Google Drive → New → File upload** and upload `Sports-Sphere-Website-Content.xlsx`.
+1. Open **Google Drive → New → File upload** and upload `MITWPU-Sports-Website-Content.xlsx`.
 2. Open it, then **File → Save as Google Sheets**. Use the new Google Sheets copy from now on.
 3. **Share → General access → Anyone with the link → Viewer.** (The website reads the sheet through this link.)
 4. Still in **Share**, add the Sports Office staff who will update the site as **Editors**. Only editors can change the website.
@@ -78,7 +78,7 @@ One tab holds two kinds of post, set in the **kind** column:
 
 ### 🔗 Registration portal (`settings` tab, set once)
 
-**Not in use yet: leave this empty until the registration portal is linked.** Later, write the registration portal's web address in `registration_portal` (for example `https://register.sportssphere.mitwpu.edu.in`). Every **Register** button on the website then opens the portal, events marked `portal` link to it, and a **Check my registration** link appears in the footer. Leave it empty and the Register buttons go to the events calendar instead.
+**Not in use yet: leave this empty until the registration portal is linked.** Later, write the registration portal's web address in `registration_portal` (for example `https://mitwpu-sports-platform.vercel.app`). Every **Register** button on the website then opens the portal, events marked `portal` link to it, and a **Check my registration** link appears in the footer. Leave it empty and the Register buttons go to the events calendar instead.
 
 ### 📣 Announcement bar (`settings` tab)
 

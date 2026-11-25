@@ -199,7 +199,7 @@ FOOTER = ('<div class="ring-bar" aria-hidden="true"></div>\n<footer class="site-
           '      <div><h4>Explore</h4><ul class="footer-links"><li><a href="about.html">About us</a></li><li><a href="sports.html">Sports</a></li><li><a href="teams.html">Teams &amp; coaches</a></li><li><a href="facilities.html">Facilities</a></li><li><a href="events.html">Season calendar</a></li><li><a href="achievements.html">Achievements</a></li><li><a href="news.html">News &amp; notices</a></li><li><a href="gallery.html">Gallery</a></li></ul></div>\n'
           '      <div><h4>Get involved</h4><ul class="footer-links"><li><a href="join.html">Join the student club</a></li><li><a href="events.html#calendar" data-register>Register for an event</a></li><li hidden><a href="#" data-portal-status hidden>Check my registration</a></li><li><a href="partner.html">Become a sponsor</a></li><li><a href="partner.html#tiers">Sponsorship packages</a></li><li><a href="faq.html">FAQ &amp; downloads</a></li><li><a href="contact.html">Contact us</a></li></ul></div>\n'
           '      <div><h4>Follow us</h4><ul class="footer-links ig-links">' +
-          ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s</a></li>' % (ig_url(h), I["ig"], h) for h, _, _, _ in IG) +
+          ''.join('<li><a href="%s" target="_blank" rel="noopener">%s@%s%s</a></li>' % (ig_url(h), I["ig"], h, ' (student club)' if h == 'sportssphere__mitwpu' else '') for h, _, _, _ in IG) +
           '</ul><p class="footer-small">MIT World Peace University<br>S. No. 124, Paud Road, Kothrud, Pune 411038</p>'
           '<div class="socials" aria-label="MIT-WPU social media">'
           '<a href="https://www.facebook.com/MIT-WPUOfficial/" target="_blank" rel="noopener" aria-label="MIT-WPU on Facebook">' + I["fb"] + '</a>'
@@ -220,7 +220,7 @@ def _ld(obj):
 _ORG = {"@type": "SportsOrganization", "name": "MIT-WPU Department of Sports", "alternateName": "MIT-WPU Sports", "url": SITE_URL if "SITE_URL" in dir() else "",
         "parentOrganization": {"@type": "CollegeOrUniversity", "name": "MIT World Peace University", "url": "https://mitwpu.edu.in"},
         "address": {"@type": "PostalAddress", "streetAddress": "S. No. 124, Paud Road, Kothrud", "addressLocality": "Pune", "postalCode": "411038", "addressCountry": "IN"},
-        "sameAs": ["https://www.instagram.com/sportssphere__mitwpu/", "https://www.instagram.com/hoopitup_mitwpu/", "https://www.instagram.com/mitwpusummit/"]}
+        "sameAs": ["https://www.instagram.com/hoopitup_mitwpu/", "https://www.instagram.com/mitwpusummit/"]}
 JSONLD = {}
 NOSCRIPT = '<noscript><p class="empty">This section needs JavaScript to load. Please enable it, or follow the student sports club @sportssphere__mitwpu on Instagram.</p></noscript>'
 
@@ -412,9 +412,9 @@ def sponsor_strip():
             '</div><p class="footnote center mt-2">Trusted by leading brands in healthcare, fitness &amp; sports</p>')
 
 TESTIMONIALS = [
-    ("Partnering with Sports Sphere gave our brand meaningful visibility among students and sports enthusiasts. The engagement throughout the event exceeded our expectations.", "Sponsorship Partner", ORANGE),
-    ("Sports Sphere delivered outstanding brand exposure through on-ground activations and digital promotions. The event was exceptionally organised, and our partnership generated strong engagement with our target audience.", "Brand Partner", BLUE),
-    ("Competing at Sports Sphere was an incredible experience. The tournament was professionally organised, and every match reflected the spirit of sportsmanship and excellence.", "Student Athlete, MIT-WPU", GREEN),
+    ("Partnering with MIT-WPU's sports events gave our brand meaningful visibility among students and sports enthusiasts. The engagement throughout the event exceeded our expectations.", "Sponsorship Partner", ORANGE),
+    ("The MIT-WPU Department of Sports delivered outstanding brand exposure through on-ground activations and digital promotions. The event was exceptionally organised, and our partnership generated strong engagement with our target audience.", "Brand Partner", BLUE),
+    ("Competing at MIT-WPU was an incredible experience. The tournament was professionally organised, and every match reflected the spirit of sportsmanship and excellence.", "Student Athlete, MIT-WPU", GREEN),
 ]
 def testimonials():
     return '<div class="quotes">' + ''.join('<figure class="quote reveal" data-delay="%d" style="--c:%s"><blockquote>%s</blockquote><figcaption>%s</figcaption></figure>'
@@ -648,7 +648,7 @@ events = (page_hero("Events", "Season " + season_span(), "Game<br><span class='g
           '<a class="btn btn-primary mt-3 reveal" href="#calendar">See open events ' + ARROW + '</a></div>'
           '<ul class="feature-list">' + feature_items([("clipboard", "1. Find your event", "Pick an event in the calendar. If registration is open, you\'ll see a Register button.", ORANGE),
                                                        ("users", "2. Register and get verified", "The button opens the registration form for that event. Fill it in before registration closes.", BLUE),
-                                                       ("trophy", "3. Get ready", "Watch for your confirmation, then follow @sportssphere__mitwpu for fixtures, results and live updates.", GREEN)]) + '</ul>'
+                                                       ("trophy", "3. Get ready", "Watch for your confirmation, then follow the student sports club, @sportssphere__mitwpu, for fixtures, results and live updates.", GREEN)]) + '</ul>'
           '</div></section>')
 page("events.html", "Events", "The MIT-WPU sports season: Hoop It Up, the Sports Summit, interdepartmental sports, marathon, awards and more.", events)
 
@@ -670,7 +670,7 @@ partner = (page_hero("Partner", "Sponsorship " + season_span(), "Partner<br><spa
            '<h2 class="h2 reveal">Let\'s build<br><span class="grad">something big</span></h2><p class="lead mt-2 reveal">Tell us about your brand and goals. Our team will send the full sponsorship docket and set up a call.</p>'
            '<ul class="feature-list">' + feature_items([("trophy", "Flagship properties", "Hoop It Up and the national-level Sports Summit.", ORANGE),
                                                         ("chart", "Year-round visibility", "A full calendar of events, every season.", BLUE)]) + '</ul></div>'
-           '<div class="form-card reveal" data-delay="1"><form class="form" data-validate novalidate data-subject="Sponsorship enquiry" data-pending="Thanks for your interest! Our enquiry inbox is being connected. In the meantime, message @sportssphere__mitwpu on Instagram and our partnerships team will get back to you.">'
+           '<div class="form-card reveal" data-delay="1"><form class="form" data-validate novalidate data-subject="Sponsorship enquiry" data-pending="Thanks for your interest! Our enquiry inbox is being connected. In the meantime, you can also reach us through the student sports club, @sportssphere__mitwpu, on Instagram.">'
            + field("p-name", "Your name", '<input id="p-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
            + field("p-company", "Company / Brand", '<input id="p-company" name="company" type="text" autocomplete="organization" required><span class="err">Please enter your company.</span>')
            + field("p-email", "Work email", '<input id="p-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
@@ -702,7 +702,7 @@ contact = (page_hero("Contact", "Get in touch", "Let's talk<br><span class='grad
            '<!-- TODO: official Department of Sports email and phone (not yet supplied) -->'
            '<div class="contact-item reveal" style="--c:' + GREEN + '"><span class="fi">' + I["mail"] + '</span><div><span>Email</span><p data-render="email">Coming soon</p></div></div>'
            '</div></div>'
-           '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Send us a message</h3><form class="form" data-validate novalidate data-subject="Website message" data-pending="Thanks! Our contact inbox is being connected. In the meantime, message @sportssphere__mitwpu on Instagram and we will reply there.">'
+           '<div class="form-card reveal" data-delay="1"><h3 class="h3" style="margin-bottom:22px">Send us a message</h3><form class="form" data-validate novalidate data-subject="Website message" data-pending="Thanks! Our contact inbox is being connected. In the meantime, you can also reach us through the student sports club, @sportssphere__mitwpu, on Instagram.">'
            + field("c-name", "Full name", '<input id="c-name" name="name" type="text" autocomplete="name" required><span class="err">Please enter your name.</span>')
            + field("c-email", "Email", '<input id="c-email" name="email" type="email" autocomplete="email" required><span class="err">Please enter a valid email.</span>')
            + field("c-topic", "Topic", '<select id="c-topic" name="topic" required><option value="">Choose a topic</option><option>Event registration</option><option>Joining the student club (Sports Sphere)</option><option>Hoop It Up</option><option>Sports Summit</option><option>Sponsorship &amp; partnerships</option><option>Media &amp; press</option><option>Something else</option></select><span class="err">Please choose a topic.</span>', True)

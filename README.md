@@ -21,7 +21,7 @@ npx vercel@latest deploy --prod
 ## Preview locally
 
 ```bash
-cd "sports sphere official website"
+cd mitwpu-sports-website
 python3 -m http.server 8080
 # open http://localhost:8080
 ```
